@@ -169,5 +169,5 @@ cython_debug/
 # Private
 token
 
-# Heavy files
-data/eu_open_*.json
+# Data, temporary & heavy files
+data/
