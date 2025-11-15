@@ -4,8 +4,7 @@
 import json
 
 # Local imports
-import liquipedia_tools as lp_t
-import startgg_tools as sgg_t
+from src.tournament_page_filler import liquipedia_tools as lp_t, startgg_tools as sgg_t
 
 """File Information
 @file_name: _sandbox.py

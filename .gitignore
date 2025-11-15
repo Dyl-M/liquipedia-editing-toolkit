@@ -171,3 +171,4 @@ token
 
 # Data, temporary & heavy files
 data/
+src/stream_filler/wikitext_*.txt

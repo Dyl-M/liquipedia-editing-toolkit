@@ -28,7 +28,7 @@ API_URL = 'https://api.start.gg/gql/alpha'  # API URL
 # - The token file path is relative to this script's location (../token/start.gg-token.txt).
 # - Make sure the token file exists and contains a valid start.gg API token.
 # - The token is read at import time; if it changes on disk, you must reload the module to use the new value.
-with open('../token/start.gg-token.txt', 'r', encoding='utf8') as token_file:
+with open('../../token/start.gg-token.txt', 'r', encoding='utf8') as token_file:
     QUERIES_HEADER = {"Authorization": f"Bearer {token_file.read()}"}
 
 
