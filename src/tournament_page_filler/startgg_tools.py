@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 import pycountry
 import requests
 
@@ -25,10 +26,12 @@ API_URL = 'https://api.start.gg/gql/alpha'  # API URL
 
 # Read the token from a local file and set up the Authorization header used by all GraphQL requests.
 # Important:
-# - The token file path is relative to this script's location (../token/start.gg-token.txt).
+# - The token file path is relative to this script's location (../../token/start.gg-token.txt from this file).
 # - Make sure the token file exists and contains a valid start.gg API token.
 # - The token is read at import time; if it changes on disk, you must reload the module to use the new value.
-with open('../../token/start.gg-token.txt', 'r', encoding='utf8') as token_file:
+
+_TOKEN_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'token', 'start.gg-token.txt')
+with open(_TOKEN_PATH, 'r', encoding='utf8') as token_file:
     QUERIES_HEADER = {"Authorization": f"Bearer {token_file.read()}"}
 
 
@@ -136,7 +139,7 @@ def get_event_id(comp_slug: str) -> tuple:
     raise Exception(f'Error getting event identifiers: {ids}')
 
 
-def _get_entrant_last_elimination_set_id(event_id: int, entrant_id: int) -> int | None:
+def get_entrant_last_elimination_set_id(event_id: int, entrant_id: int) -> int | None:
     """Return the ID of the most recent completed set that eliminated the given entrant.
 
     Implementation details
@@ -194,6 +197,126 @@ def _get_entrant_last_elimination_set_id(event_id: int, entrant_id: int) -> int 
         return set_id
 
     return None
+
+
+def get_set_details(set_id: int) -> dict | None:
+    """
+    Fetch details of a specific set (match) from start.gg.
+
+    Parameters
+    ----------
+    set_id : int
+        The internal ID of the set to fetch.
+
+    Returns
+    -------
+    dict | None
+        A dictionary with the following structure:
+        {
+            "winner_name": str,      # Name of the winning team/player
+            "loser_name": str,       # Name of the losing team/player
+            "winner_score": int,     # Winner's score
+            "loser_score": int,      # Loser's score
+            "identifier": str        # Match identifier (e.g., "AL", "AM")
+        }
+        Returns None if the set cannot be fetched or has invalid data.
+
+    Notes
+    -----
+    - This function is useful for determining elimination details for tournament results
+    - Returns None if the set is not completed or has missing data
+    """
+    r_body = {
+        "query": """
+        query SetDetails($setId: ID!) {
+          set(id: $setId) {
+            id
+            identifier
+            slots {
+              entrant {
+                id
+                name
+              }
+              standing {
+                stats {
+                  score {
+                    value
+                  }
+                }
+              }
+            }
+            winnerId
+          }
+        }
+        """,
+        "variables": {
+            "setId": set_id
+        }
+    }
+
+    try:
+        resp = requests.post(url=API_URL, json=r_body, headers=QUERIES_HEADER)
+        if not resp.ok:
+            return None
+
+        data = resp.json()
+        if data.get("errors"):
+            return None
+
+        set_data = (data.get("data") or {}).get("set")
+        if not set_data:
+            return None
+
+        slots = set_data.get("slots") or []
+        if len(slots) != 2:
+            return None
+
+        winner_id = set_data.get("winnerId")
+        if not winner_id:
+            return None
+
+        # Extract both participants
+        slot1, slot2 = slots[0], slots[1]
+
+        entrant1 = (slot1.get("entrant") or {})
+        entrant2 = (slot2.get("entrant") or {})
+
+        id1 = entrant1.get("id")
+        id2 = entrant2.get("id")
+        name1 = entrant1.get("name")
+        name2 = entrant2.get("name")
+
+        # Get scores
+        score1 = (((slot1.get("standing") or {}).get("stats") or {}).get("score") or {}).get("value")
+        score2 = (((slot2.get("standing") or {}).get("stats") or {}).get("score") or {}).get("value")
+
+        if name1 is None or name2 is None or id1 is None or id2 is None:
+            return None
+
+        # Determine winner and loser using winnerId (not scores, which may be missing)
+        if id1 == winner_id:
+            winner_name, loser_name = name1, name2
+            winner_score, loser_score = score1, score2
+        elif id2 == winner_id:
+            winner_name, loser_name = name2, name1
+            winner_score, loser_score = score2, score1
+        else:
+            # winnerId doesn't match either entrant (shouldn't happen)
+            return None
+
+        # Get identifier (match ID like "AL", "AM", etc.)
+        identifier = set_data.get("identifier", "")
+
+        return {
+            "winner_name": winner_name,
+            "loser_name": loser_name,
+            "winner_score": winner_score,
+            "loser_score": loser_score,
+            "identifier": identifier
+        }
+
+    except Exception:
+        return None
 
 
 def get_event_top_teams(event_slug: str, top_n: int) -> list:

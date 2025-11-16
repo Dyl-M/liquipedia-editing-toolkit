@@ -9,6 +9,7 @@ This is a Python project for data analysis and integration between start.gg (esp
 1. Fetch tournament data from start.gg via GraphQL API
 2. Generate Liquipedia-formatted wikitext (TeamCards, brackets, etc.)
 3. Insert stream links into Liquipedia tournament pages
+4. Automatically fill prize pool sections with tournament placements and elimination details
 
 ## Setup
 
@@ -25,7 +26,7 @@ The project requires a start.gg API token stored at `token/start.gg-token.txt` (
 
 ## Architecture
 
-The codebase is organized into two main functional modules:
+The codebase is organized into three main functional modules:
 
 ### 1. Tournament Page Filler (`src/tournament_page_filler/`)
 
@@ -64,6 +65,73 @@ The codebase is organized into two main functional modules:
 2. Create list of `StreamConfig` objects
 3. Call `process_multiple_teams()` to modify wikitext
 4. Save to `wikitext_updated.txt`
+
+### 3. Prize pool Filler (`src/prize_pool_filler/`)
+
+**Purpose:** Automatically fill Liquipedia prize pool wikitext with tournament placement data from start.gg.
+
+#### Core Modules
+
+- **`fill_prize_pool.py`**: Main module for processing prize pool wikitext
+  - `parse_placement_range(place_str)`: Parses placement strings like "65-72" into (65, 72) tuples
+  - `extract_prize_pool_slots(wikitext)`: Extracts all slots containing opponent entries to be filled
+  - `calculate_required_teams(slots)`: Calculates maximum teams needed from slot ranges
+  - `get_teams_with_placements(event_slug, required_teams, phase_name, use_phase_fallback)`: Fetches teams with smart fallback to phase results for ongoing tournaments
+  - `fill_prizepool_opponents(wikitext, teams_data)`: Fills opponent slots with team names and elimination details, **sorted by group (B1, B2, ...) then match identifier (AL, AM, ...)**
+  - `process_prizepool_from_event(event_slug, wikitext_path, output_path, top_n, phase_name)`: Complete end-to-end workflow
+
+- **`get_phase_results.py`**: Handles ongoing tournaments with incomplete event standings
+  - `get_tournament_structure(event_slug)`: Analyzes phase and group structure
+  - `get_completed_phase_results(event_slug, phase_name_filter, required_teams)`: Fetches results from completed phases
+  - `calculate_cumulative_placements(phase_results)`: Converts group placements to overall standings
+  - Optimizations: Skips phases with >512 participants to avoid API timeouts
+
+**Data Flow:**
+1. Parse wikitext to identify slots with placement ranges (e.g., `{{Slot|place=65-72|...`)
+2. Calculate required teams from maximum placement in slots
+3. Fetch tournament data:
+   - **Strategy 1:** Try event-level standings first (fastest for completed events)
+   - **Strategy 2:** Fall back to phase results if event incomplete (ongoing tournaments)
+   - Enrich with elimination_set_id for each team
+4. For each team in placement slots, retrieve elimination details:
+   - Use `get_set_details()` to fetch the set where they were eliminated
+   - Extract opponent name (winner), match score, group name, and match identifier
+5. **Sort teams by bracket position:** Group first (B1, B2, B3...), then match identifier (AL, AM, AN...) within each group
+6. Replace `{{Opponent|tbd|lastvs=|lastvsscore=}}` with actual data
+7. Output updated wikitext with filled opponent information
+
+**Enhanced start.gg Tools:**
+- `get_set_details(set_id)`: Fetches match details including participants, scores, and bracket position
+  - Returns: `{"winner_name": str, "loser_name": str, "winner_score": int, "loser_score": int, "identifier": str}`
+  - The `identifier` field contains the match ID (e.g., "AL", "AM") for bracket position sorting
+  - Used to populate "lastvs" (last versus), "lastvsscore" fields, and for sorting
+
+**Key Features:**
+- **Smart Fallback:** Automatically detects ongoing tournaments and falls back to phase results
+- **Phase Optimization:** Skips large phases (>512 teams) to avoid API timeouts
+- **Bracket Sorting:** Teams sorted by group then match ID for correct Liquipedia ordering
+- **Forfeit Handling:** Automatically formats forfeit scores as "FF-W" or "W-FF"
+- **Rate Limiting:** Built-in 0.5s delays between API calls to avoid overwhelming start.gg
+
+**Usage Pattern:**
+
+```python
+from src.prize_pool_filler.fill_prize_pool import process_prizepool_from_event
+
+# Complete workflow - auto-detects phase and calculates required teams
+process_prizepool_from_event(
+    event_slug="tournament/rlcs-2026-europe-open-1/event/3v3-bracket",
+    wikitext_path="src/prize_pool_filler/wikitext_input.txt",
+    output_path="src/prize_pool_filler/wikitext_output.txt",
+    top_n=None,  # Auto-calculate from wikitext (or specify manually)
+    phase_name=None  # Auto-detect best phase (or specify "Day 2")
+)
+```
+
+**Example Files:**
+- `example_usage.py`: Demonstrates complete workflow, phase specification, and mock data testing
+- `test_phase_2.py`: Tests for placement ordering, forfeit handling, and slot extraction
+- `run_fill.py`: Quick script to run the filler on your wikitext files
 
 ## Development Workflow
 
