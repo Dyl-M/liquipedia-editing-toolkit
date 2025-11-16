@@ -26,11 +26,11 @@ API_URL = 'https://api.start.gg/gql/alpha'  # API URL
 
 # Read the token from a local file and set up the Authorization header used by all GraphQL requests.
 # Important:
-# - The token file path is relative to this script's location (../../token/start.gg-token.txt from this file).
+# - The token file path is relative to this script's location (../../_token/start.gg-token.txt from this file).
 # - Make sure the token file exists and contains a valid start.gg API token.
 # - The token is read at import time; if it changes on disk, you must reload the module to use the new value.
 
-_TOKEN_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'token', 'start.gg-token.txt')
+_TOKEN_PATH = os.path.join(os.path.dirname(__file__), '..', '..', '_token', 'start.gg-token.txt')
 with open(_TOKEN_PATH, 'r', encoding='utf8') as token_file:
     QUERIES_HEADER = {"Authorization": f"Bearer {token_file.read()}"}
 

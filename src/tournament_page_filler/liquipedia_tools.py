@@ -100,7 +100,7 @@ def generate_team_cards_from_json(json_path: str, include_box_wrappers: bool = T
     - ends with: {{box|end}}
 
     Args:
-        json_path: Path to the input JSON file (e.g., data/3v3-sam-champions-road-2025.json).
+        json_path: Path to the input JSON file (e.g., _data/3v3-sam-champions-road-2025.json).
         include_box_wrappers: Whether to wrap the cards between start/end box templates.
 
     Returns:

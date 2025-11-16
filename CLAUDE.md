@@ -22,7 +22,7 @@ pip install -r requirements.txt
 Required packages: `pycountry`, `requests`, `beautifulsoup4`
 
 ### API Token
-The project requires a start.gg API token stored at `token/start.gg-token.txt` (relative to project root). This file is gitignored and must be created manually. The token is read at module import time by `src/tournament_page_filler/startgg_tools.py`.
+The project requires a start.gg API token stored at `_token/start.gg-token.txt` (relative to project root). This file is gitignored and must be created manually. The token is read at module import time by `src/tournament_page_filler/startgg_tools.py`.
 
 ## Architecture
 
@@ -46,7 +46,7 @@ The codebase is organized into three main functional modules:
 
 **Data Flow:**
 1. Call `startgg_tools.get_event_top_teams()` with event slug and top_n
-2. Save results to `data/{tournament-name}.json`
+2. Save results to `_data/{tournament-name}.json`
 3. Use `liquipedia_tools.generate_team_cards_*()` to convert JSON to wikitext
 4. Copy wikitext to Liquipedia tournament pages
 
@@ -143,15 +143,15 @@ event_slug = "tournament/3v3-sam-champions-road-2025/event/3v3-bracket"
 top_teams = sgg_t.get_event_top_teams(event_slug, top_n=32)
 
 # Save to JSON
-with open(f'../data/{event_slug.split('/')[1]}.json', 'w', encoding='utf-8') as json_file:
+with open(f'../_data/{event_slug.split('/')[1]}.json', 'w', encoding='utf-8') as json_file:
     json.dump(top_teams, json_file, indent=4, ensure_ascii=False)
 
 # Generate wikitext with tabs
-print(lp_t.generate_team_cards_tabs_from_json("../data/3v3-sam-champions-road-2025.json", [12, 32]))
+print(lp_t.generate_team_cards_tabs_from_json("../_data/3v3-sam-champions-road-2025.json", [12, 32]))
 ```
 
 ### Data Storage
-- Tournament JSON data: `data/{tournament-name}.json`
+- Tournament JSON data: `_data/{tournament-name}.json`
 - Wikitext files: `src/stream_filler/wikitext_*.txt` (gitignored)
 
 ## Important Notes
@@ -171,8 +171,8 @@ print(lp_t.generate_team_cards_tabs_from_json("../data/3v3-sam-champions-road-20
 - Box/Tabs formatting uses `{{box|start}}`, `{{box|break}}`, `{{box|end}}` and `{{Tabs dynamic}}`
 
 ### Path Conventions
-- Token file: `../../token/start.gg-token.txt` (relative to `src/tournament_page_filler/startgg_tools.py`)
-- Data files: `../data/` (relative to `src/_sandbox.py`)
+- Token file: `../../_token/start.gg-token.txt` (relative to `src/tournament_page_filler/startgg_tools.py`)
+- Data files: `../_data/` (relative to `src/_sandbox.py`)
 - Module imports use `from src.tournament_page_filler import ...` (project root expected in sys.path)
 
 ### Code Style

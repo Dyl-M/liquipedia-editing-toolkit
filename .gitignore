@@ -167,8 +167,12 @@ cython_debug/
 .pypirc
 
 # Private
-token
+_token
 
 # Data, temporary & heavy files
-data/
+_data/
 src/*/wikitext_*.txt
+
+# Claude.ai local config
+.claude/
+commit_m_tmp.txt

@@ -48,7 +48,7 @@ Required packages: `pycountry`, `requests`, `beautifulsoup4`
 ### API Token
 Create a start.gg API token and save it to:
 ```
-token/start.gg-token.txt
+_token/start.gg-token.txt
 ```
 
 This file is gitignored and must be created manually.
