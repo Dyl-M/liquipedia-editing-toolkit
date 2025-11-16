@@ -73,20 +73,3 @@ src/
     └── example_usage.py     # Usage examples
 ```
 
-feat(prize-pool): add automated Liquipedia prize pool filler with bracket-aware sorting
-
-- Add complete prize pool filling workflow with Phase 1 & 2 implementation
-- Implement smart fallback: event standings → phase results for ongoing tournaments
-- Add bracket position sorting: teams ordered by group (B1, B2...) then match ID (AL, AM...)
-- Implement phase optimization to skip large phases (>512 participants) avoiding API timeouts
-- Add elimination tracking with match scores and forfeit handling (FF-W format)
-- Enhance get_set_details() to fetch match identifier for bracket positioning
-- Add get_phase_results module for handling incomplete tournaments
-- Include comprehensive test suite and usage examples
-- Update documentation (CLAUDE.md, README.md) with complete API reference
-
-Key features:
-* Auto-calculates required teams from wikitext slots
-* Rate limiting (0.5s delays) to avoid overwhelming start.gg API
-* Fills lastvs (opponent) and lastvsscore (match score) fields
-* Handles multiple parallel groups with cumulative placement calculation
