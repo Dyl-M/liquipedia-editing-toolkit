@@ -1,7 +1,6 @@
-# startgg-rl-data
-Data Analysis for Rocket League competitions on start.gg
+# Liquipedia Editing Toolkit
 
-A Python toolkit for fetching tournament data from start.gg and generating Liquipedia-formatted content for Rocket League esports.
+Toolkit facilitating Liquipedia pages editing.
 
 ## Features
 
