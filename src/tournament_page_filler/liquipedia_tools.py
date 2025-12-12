@@ -252,7 +252,7 @@ def _normalize_flag(country: Optional[str]) -> str:
     Returns:
         A lowercased ISO-2 code string if provided, otherwise an empty string.
     """
-    return country.lower() or ""
+    return country.lower() if country else ""
 
 
 def _safe_str(value: Optional[str]) -> str:
