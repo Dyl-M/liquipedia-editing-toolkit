@@ -69,10 +69,10 @@ def country_iso2(country_str: str):
         return None
 
     # Try the exact match first; if not available, attempt a fuzzy lookup to best-effort match
-    iso2 = pycountry.countries.get(name=country_str).alpha_2
+    country = pycountry.countries.get(name=country_str)
 
-    if iso2:
-        return iso2
+    if country:
+        return country.alpha_2
     else:
         return pycountry.countries.search_fuzzy(country_str)[0].alpha_2
 
@@ -319,7 +319,310 @@ def get_set_details(set_id: int) -> dict | None:
         return None
 
 
-def get_event_top_teams(event_slug: str, top_n: int) -> list:
+def _get_phase_groups_with_standings(event_id: int) -> list:
+    """
+    Get all phase groups for an event with their standings.
+
+    This is an internal helper for the phase fallback mechanism.
+
+    Parameters
+    ----------
+    event_id : int
+        The internal event ID.
+
+    Returns
+    -------
+    list[dict]
+        List of phase groups with standings, each containing:
+        {
+            "phase_name": str,
+            "group_identifier": str,
+            "num_seeds": int,
+            "state": int,
+            "standings": [
+                {
+                    "placement": int,
+                    "entrant_id": int,
+                    "team_name": str,
+                    "participants": [...]
+                }
+            ]
+        }
+    """
+    # First get tournament structure (phases and groups)
+    query_body = {
+        "query": """
+        query EventPhases($eventId: ID!) {
+          event(id: $eventId) {
+            id
+            phases {
+              id
+              name
+              state
+              numSeeds
+              phaseGroups {
+                nodes {
+                  id
+                  displayIdentifier
+                  state
+                  seeds(query: {page: 1, perPage: 1}) {
+                    pageInfo {
+                      total
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        """,
+        "variables": {
+            "eventId": event_id
+        }
+    }
+
+    resp = requests.post(url=API_URL, json=query_body, headers=QUERIES_HEADER)
+    if not resp.ok:
+        return []
+
+    data = resp.json()
+    if data.get("errors"):
+        return []
+
+    event = (data.get("data") or {}).get("event")
+    if not event:
+        return []
+
+    phase_groups_data = []
+
+    for phase in (event.get("phases") or []):
+        phase_name = phase.get("name", "Unknown")
+        phase_state = phase.get("state")
+        phase_num_seeds = phase.get("numSeeds", 0)
+
+        # Only process completed phases (state == 3 or "COMPLETED")
+        if phase_state not in [3, "COMPLETED"]:
+            continue
+
+        # Skip phases with too many participants (> 512) to avoid API timeouts
+        if phase_num_seeds > 512:
+            print(f"[INFO] Skipping phase '{phase_name}' ({phase_num_seeds} participants) - too large")
+            continue
+
+        phase_groups = (phase.get("phaseGroups") or {}).get("nodes") or []
+
+        for group in phase_groups:
+            group_id = group.get("id")
+            group_identifier = group.get("displayIdentifier", "")
+            group_state = group.get("state")
+            seeds_info = (group.get("seeds") or {}).get("pageInfo") or {}
+            num_seeds = seeds_info.get("total", 0)
+
+            # Get standings for this phase group
+            standings = _get_phase_group_standings_with_participants(group_id)
+
+            phase_groups_data.append({
+                "phase_name": phase_name,
+                "group_identifier": group_identifier,
+                "num_seeds": num_seeds,
+                "state": group_state,
+                "standings": standings
+            })
+
+    return phase_groups_data
+
+
+def _get_phase_group_standings_with_participants(phase_group_id: int) -> list:
+    """
+    Get standings from a specific phase group with full participant details.
+
+    Parameters
+    ----------
+    phase_group_id : int
+        The phase group ID.
+
+    Returns
+    -------
+    list[dict]
+        List of standings with participant info.
+    """
+    all_standings = []
+    page = 1
+    per_page = 50
+
+    while True:
+        query_body = {
+            "query": """
+            query PhaseGroupStandings($phaseGroupId: ID!, $page: Int!, $perPage: Int!) {
+              phaseGroup(id: $phaseGroupId) {
+                id
+                standings(query: {page: $page, perPage: $perPage}) {
+                  pageInfo {
+                    total
+                    totalPages
+                  }
+                  nodes {
+                    placement
+                    entrant {
+                      id
+                      name
+                      participants {
+                        id
+                        gamerTag
+                        user {
+                          location {
+                            country
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """,
+            "variables": {
+                "phaseGroupId": phase_group_id,
+                "page": page,
+                "perPage": per_page
+            }
+        }
+
+        resp = requests.post(url=API_URL, json=query_body, headers=QUERIES_HEADER)
+        if not resp.ok:
+            break
+
+        data = resp.json()
+        if data.get("errors"):
+            break
+
+        phase_group = (data.get("data") or {}).get("phaseGroup")
+        if not phase_group:
+            break
+
+        standings = phase_group.get("standings") or {}
+        nodes = standings.get("nodes") or []
+
+        if not nodes:
+            break
+
+        for node in nodes:
+            entrant = node.get("entrant") or {}
+            all_standings.append({
+                "placement": node.get("placement"),
+                "entrant_id": entrant.get("id"),
+                "team_name": entrant.get("name"),
+                "participants": entrant.get("participants") or []
+            })
+
+        # Pagination
+        page_info = standings.get("pageInfo") or {}
+        total_pages = page_info.get("totalPages", 1)
+
+        if page >= total_pages:
+            break
+
+        page += 1
+
+    return all_standings
+
+
+def _get_teams_from_phase_groups(event_id: int, event_slug: str, top_n: int) -> list:
+    """
+    Fallback method to get teams from phase group standings when event standings are empty.
+
+    This is used for ongoing tournaments where event-level standings are not yet available.
+
+    Parameters
+    ----------
+    event_id : int
+        The internal event ID.
+    event_slug : str
+        The event slug (for logging).
+    top_n : int
+        Number of teams to fetch.
+
+    Returns
+    -------
+    list[dict]
+        List of team dictionaries in the same format as get_event_top_teams.
+    """
+    phase_groups = _get_phase_groups_with_standings(event_id)
+
+    if not phase_groups:
+        print(f"[WARN] No completed phase groups found for '{event_slug}'")
+        return []
+
+    # Organize teams by their placement within groups
+    # Teams at the same placement across groups get cumulative placements
+    teams_by_placement = {}
+
+    for pg in phase_groups:
+        phase_name = pg["phase_name"]
+        group_id = pg["group_identifier"]
+
+        for standing in pg["standings"]:
+            placement = standing.get("placement")
+            if placement is None:
+                continue
+
+            if placement not in teams_by_placement:
+                teams_by_placement[placement] = []
+
+            teams_by_placement[placement].append({
+                "group_placement": placement,
+                "group_name": f"{phase_name} - {group_id}",
+                "entrant_id": standing.get("entrant_id"),
+                "team_name": standing.get("team_name"),
+                "participants": standing.get("participants", [])
+            })
+
+    # Calculate cumulative placements
+    results = []
+    cumulative_placement = 1
+
+    for group_placement in sorted(teams_by_placement.keys()):
+        teams_at_placement = teams_by_placement[group_placement]
+        # Sort by group name for consistent ordering
+        teams_at_placement.sort(key=lambda t: t["group_name"])
+
+        for team in teams_at_placement:
+            entrant_id = team.get("entrant_id")
+
+            # Build members list
+            members = []
+            for p in team.get("participants", []):
+                members.append({
+                    "player_id": p.get("id"),
+                    "player_tag": p.get("gamerTag"),
+                    "player_country": country_iso2((((p.get("user") or {}).get("location") or {}).get("country")))
+                })
+
+            # Get elimination set id
+            elimination_set_id = None
+            if entrant_id is not None:
+                elimination_set_id = get_entrant_last_elimination_set_id(event_id, entrant_id)
+
+            results.append({
+                "placement": cumulative_placement,
+                "team_name": team.get("team_name"),
+                "members": members,
+                "elimination_set_id": elimination_set_id
+            })
+
+            cumulative_placement += 1
+
+            if len(results) >= top_n:
+                break
+
+        if len(results) >= top_n:
+            break
+
+    print(f"[INFO] Retrieved {len(results)} teams from phase group standings")
+    return results
+
+
+def get_event_top_teams(event_slug: str, top_n: int, use_phase_fallback: bool = True) -> list:
     """
     Fetch the top-N teams for a given event (by slug), ordered by placement via event.standings. The output includes
     teams' name and a list of members (player id, gamer tag, ISO-2 country code).
@@ -330,6 +633,9 @@ def get_event_top_teams(event_slug: str, top_n: int) -> list:
         Event slug, e.g., "tournament/.../event/...".
     top_n : int
         Number of teams to fetch (Top 16, Top 32, etc.). Must be > 0.
+    use_phase_fallback : bool, optional
+        If True (default), when event standings are empty (ongoing event), automatically
+        fall back to fetching from phase group standings. Set to False to disable this behavior.
 
     Returns
     -------
@@ -361,6 +667,8 @@ def get_event_top_teams(event_slug: str, top_n: int) -> list:
     - Pagination is handled automatically using page/perPage parameters.
     - Per-page size is capped at 50 for a balance between request count and payload size.
     - If fewer teams exist than requested, the function returns as many as available.
+    - For ongoing events where event standings are empty, falls back to phase group standings
+      (requires get_phase_results module from prize_pool_filler).
     """
     if top_n <= 0:
         return []
@@ -458,7 +766,7 @@ def get_event_top_teams(event_slug: str, top_n: int) -> list:
             # Compute the elimination set id (None for champions or if not determinable).
             elimination_set_id = None
             if entrant_id is not None:
-                elimination_set_id = _get_entrant_last_elimination_set_id(event_id, entrant_id)
+                elimination_set_id = get_entrant_last_elimination_set_id(event_id, entrant_id)
 
             results.append({
                 "placement": placement,
@@ -473,6 +781,11 @@ def get_event_top_teams(event_slug: str, top_n: int) -> list:
 
         if page > total_pages:
             break
+
+    # If no results from event standings and fallback is enabled, try phase group standings
+    if not results and use_phase_fallback:
+        print(f"[INFO] Event standings empty for '{event_slug}', attempting phase group fallback...")
+        results = _get_teams_from_phase_groups(event_id, event_slug, top_n)
 
     # Ensure ascending order by placement and slice to top_n to match the requested size.
     results.sort(key=lambda r: (
