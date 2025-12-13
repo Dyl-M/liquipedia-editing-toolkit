@@ -213,12 +213,26 @@ def format_team_participants_opponent_from_entry(entry: Dict[str, Any], remove_e
     Returns:
         A string representing a single Opponent entry within TeamParticipants.
     """
-    # Handle empty placeholder
-    if entry is None or not entry.get("team_name"):
-        return "|{{Opponent|}}"
+    team_name = _safe_str(entry.get("team_name")) if entry else ""
+    members: List[Dict[str, Any]] = entry.get("members", []) if entry else []
 
-    team_name = _safe_str(entry.get("team_name"))
-    members: List[Dict[str, Any]] = entry.get("members", [])
+    # Handle empty placeholder - generate empty person slots for manual filling
+    if not team_name:
+        # For Rocket League, standard is 3 players per team
+        # Generate empty slots that can be filled manually later
+        num_empty_slots = len(members) if members else 3
+        person_lines = []
+        for _ in range(num_empty_slots):
+            person_lines.append("    |{{Person||flag=}}")
+
+        lines = [
+            "|{{Opponent|",
+            "  |players={{Persons"
+        ]
+        lines.extend(person_lines)
+        lines.append("  }}")
+        lines.append("}}")
+        return "\n".join(lines)
 
     # Build the Persons entries
     person_lines = []

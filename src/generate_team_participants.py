@@ -39,7 +39,8 @@ def generate_team_participants_wikitext(event_slug: str, top_n: int, segments: l
     print("=" * 80)
 
     # Fetch data from start.gg
-    top_teams = sgg_t.get_event_top_teams(event_slug, top_n=top_n)
+    # Pass segments to enable smart placement filtering for ongoing tournaments
+    top_teams = sgg_t.get_event_top_teams(event_slug, top_n=top_n, segments=segments)
 
     if not top_teams:
         print("[ERROR] No teams fetched. Check the event slug and API token.")

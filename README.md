@@ -7,6 +7,8 @@ Toolkit facilitating Liquipedia pages editing.
 ### 1. Tournament Page Filler
 Generate Liquipedia wikitext from start.gg tournament results:
 - **Ongoing Tournament Support:** Fetch data from live tournaments using phase group fallback
+- **Smart Placement Lock-in:** Intelligently includes teams with confirmed placements while using empty placeholders for ongoing matches
+- **Pool Group Integration:** Enriches team data with pool group and placement information for accurate bracket positioning
 - **Two Format Options:**
   - Legacy TeamCard format for older pages
   - Modern TeamParticipants format for newer tournament pages
@@ -14,6 +16,7 @@ Generate Liquipedia wikitext from start.gg tournament results:
 - Generate formatted output with tabs for different placement ranges
 - Query Liquipedia for canonical player names
 - Automatic detection of completed vs. ongoing tournaments
+- Bracket-aware sorting by pool placement and bracket position
 
 ### 2. Stream Filler
 Insert Twitch/YouTube stream links into Liquipedia match brackets:

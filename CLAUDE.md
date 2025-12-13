@@ -34,12 +34,20 @@ The codebase is organized into three main functional modules:
 
 - **`startgg_tools.py`**: Interacts with start.gg GraphQL API
   - `get_event_id(comp_slug)`: Resolves event slug to internal ID
-  - `get_event_top_teams(event_slug, top_n, use_phase_fallback=True)`: Fetches top N teams with placement, team names, player info (id, tag, country)
+  - `get_event_top_teams(event_slug, top_n, use_phase_fallback=True, only_finalized_placements=True, segments=None)`: Fetches top N teams with placement, team names, player info (id, tag, country)
     - **Enhanced:** Automatically detects ongoing tournaments and falls back to phase group standings when event standings are incomplete
+    - **Smart Placement Lock-in:** When `only_finalized_placements=True` (default), uses bracket tier logic to determine if a team's placement is guaranteed within segment bounds, replacing uncertain teams with empty placeholders
+    - **Pool Group Integration:** Fetches pool group and placement data for each team to enable accurate bracket-aware sorting
+    - **Bracket Position Sorting:** Teams sorted by pool placement, then pool group (B1, B2, ...), then bracket identifier (A, B, ..., AA, AB, ..., AL, AM, ...)
     - Set `use_phase_fallback=False` to disable fallback behavior
+    - Pass `segments` parameter to enable smart placement filtering for ongoing tournaments
+  - `has_incomplete_sets(event_id, entrant_id)`: Checks if a team has ongoing matches (not yet completed)
+  - `get_entrant_last_elimination_set_id(event_id, entrant_id)`: Determines the set that eliminated each team
+  - `get_set_details(set_id)`: Fetches match details including participants, scores, and bracket position identifiers
   - `_get_phase_groups_with_standings(event_id)`: Internal helper to fetch standings from phase groups for ongoing tournaments
+  - `_get_teams_from_phase_groups(event_id, event_slug, top_n, only_finalized_placements)`: Fallback method for ongoing tournaments
+  - `_get_pool_placements_map(event_id)`: Maps entrant IDs to their pool group and placement information
   - `country_iso2(country_str)`: Normalizes country names to ISO 3166-1 alpha-2 codes using pycountry
-  - Internal helper `_get_entrant_last_elimination_set_id()`: Determines the set that eliminated each team
 
 - **`liquipedia_tools.py`**: Generates Liquipedia wikitext templates
   - **Old TeamCard Format:**
@@ -54,12 +62,24 @@ The codebase is organized into three main functional modules:
     - `get_true_player_name(player_name_input)`: Queries Liquipedia to get canonical player page titles (handles redirects)
 
 **Data Flow:**
-1. Call `startgg_tools.get_event_top_teams()` with event slug and top_n
+1. Call `startgg_tools.get_event_top_teams()` with event slug, top_n, and optional segments
    - For ongoing tournaments: Automatically falls back to phase group standings
    - For completed tournaments: Uses event-level standings
-2. Save results to `_data/{tournament-name}.json`
-3. Use `liquipedia_tools.generate_team_cards_*()` or `generate_team_participants_*()` to convert JSON to wikitext
-4. Copy wikitext to Liquipedia tournament pages
+   - **Smart Lock-in Logic:** Calculates worst-case placement using bracket tier logic
+     - Teams in upper half of tier (e.g., 1-8 in Top 16): placement guaranteed within tier
+     - Teams in lower half (e.g., 9-16 in Top 16): could drop to next tier (17-32)
+     - Compares worst-case placement against segment threshold to determine lock-in
+   - **Pool Group Enrichment:** Fetches pool standings to add pool_group and pool_placement metadata
+   - **Bracket Position Tracking:** Gets elimination set details to extract bracket group (B1, B2, ...) and match identifier (AL, AM, ...)
+   - **Empty Placeholders:** Teams not locked in are replaced with empty entries for manual editing
+2. **Bracket-Aware Sorting:** Teams ordered by:
+   - Pool placement (1st place teams across all pools, then 2nd place, etc.)
+   - Pool group (B1, B2, B3, ...)
+   - Bracket identifier length and alphabetically (A, B, ..., Z, AA, AB, ..., AL, AM, ...)
+   - Teams without bracket data are sorted last
+3. Save results to `_data/{tournament-name}.json`
+4. Use `liquipedia_tools.generate_team_cards_*()` or `generate_team_participants_*()` to convert JSON to wikitext
+5. Copy wikitext to Liquipedia tournament pages
 
 **Application Scripts:**
 - **`src/generate_team_participants.py`**: Main application for generating TeamParticipants wikitext
@@ -192,6 +212,35 @@ print(lp_t.generate_team_cards_tabs_from_json("../_data/3v3-sam-champions-road-2
 - Token is read once at import time; module must be reloaded if token changes
 - Queries use pagination (typically 50 items per page) for large result sets
 - Error handling: HTTP errors and GraphQL errors raise exceptions with detailed messages
+- Rate limiting: 0.3-0.5s delays between API calls to avoid rate limits
+
+### Rate Limiting Strategy
+The codebase implements intelligent rate limiting when fetching tournament data:
+- **Event standings queries:** 0.3s delay (lighter operations)
+- **Set details queries:** 0.5s delay (heavier operations)
+- **Phase group queries:** 0.5s delay (multiple queries per tournament)
+- These delays prevent API timeouts and ensure reliable data fetching
+
+### Ongoing Tournament Handling
+The toolkit includes sophisticated logic for handling tournaments in progress:
+
+**Smart Placement Lock-in:**
+- Uses bracket tier mathematics to calculate worst-case placement for teams still playing
+- Tier boundaries: 2, 4, 8, 16, 32, 64, 128, etc. (powers of 2)
+- Teams in upper half of tier stay in that tier (e.g., Top 1-8 of Top 16)
+- Teams in lower half can drop to next tier (e.g., 9-16 could become 17-32)
+- Compares worst-case against segment thresholds to determine if placement is locked in
+
+**Example Lock-in Scenarios:**
+- Team at placement 3 with Top 12 threshold: Locked in (worst-case: 8)
+- Team at placement 10 with Top 12 threshold: Not locked (worst-case: 32)
+- Team at placement 5 with Top 32 threshold: Locked in (worst-case: 8)
+
+**Empty Placeholders:**
+- Teams not locked in are replaced with empty `TeamParticipants` entries
+- Each placeholder contains 3 empty player slots (Rocket League standard)
+- Allows editors to manually fill in teams as tournament progresses
+- Preserves correct structure and placement numbers
 
 ### Liquipedia Integration
 - User-Agent header required: Set `DEFAULT_USER_AGENT` in `liquipedia_tools.py` with contact info

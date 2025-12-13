@@ -757,7 +757,7 @@ def _get_pool_placements_map(event_id: int) -> dict:
 
 
 def get_event_top_teams(event_slug: str, top_n: int, use_phase_fallback: bool = True,
-                        only_finalized_placements: bool = True) -> list:
+                        only_finalized_placements: bool = True, segments: list = None) -> list:
     """
     Fetch the top-N teams for a given event (by slug), ordered by placement via event.standings. The output includes
     teams' name and a list of members (player id, gamer tag, ISO-2 country code).
@@ -897,6 +897,58 @@ def get_event_top_teams(event_slug: str, top_n: int, use_phase_fallback: bool = 
             participants = entrant.get("participants") or []
             entrant_id = entrant.get("id")
 
+            # Check if team has ongoing matches
+            # Calculate worst-case placement and check if guaranteed within segment bounds
+            if entrant_id is not None and only_finalized_placements:
+                import time
+                import math
+                time.sleep(0.3)  # Rate limiting
+                is_still_playing = has_incomplete_sets(event_id, entrant_id)
+                if is_still_playing and placement:
+                    # Calculate worst-case placement using bracket tier logic
+                    # Teams in lower half of a tier can drop to next tier
+                    tier_max = 2 ** math.ceil(math.log2(placement))
+                    tier_min = (tier_max // 2) + 1
+                    tier_mid = (tier_min + tier_max) // 2
+
+                    if placement > tier_mid:
+                        # Lower half of tier - could drop to next tier
+                        worst_case = tier_max * 2
+                    else:
+                        # Upper half - stay in current tier
+                        worst_case = tier_max
+
+                    # Determine threshold from segments or use conservative default
+                    if segments and len(segments) > 0:
+                        # Use the first (lowest) segment bound as threshold
+                        lock_in_threshold = segments[0]
+                    else:
+                        # Fallback to conservative threshold
+                        lock_in_threshold = max(12, top_n // 3)
+
+                    if worst_case <= lock_in_threshold:
+                        print(f"[INFO] Team '{team_name}' (placement {placement}, worst-case {worst_case}) locked in top {lock_in_threshold}")
+                        # Continue to include this team with full data
+                    else:
+                        print(f"[INFO] Team '{team_name}' (placement {placement}, worst-case {worst_case}) not guaranteed for top {lock_in_threshold} - using empty placeholder")
+                        # Add empty placeholder for this team
+                        empty_members = [
+                            {"player_id": None, "player_tag": "", "player_country": None},
+                            {"player_id": None, "player_tag": "", "player_country": None},
+                            {"player_id": None, "player_tag": "", "player_country": None}
+                        ]
+                        results.append({
+                            "placement": placement,
+                            "team_name": None,  # Empty placeholder
+                            "members": empty_members,
+                            "elimination_set_id": None,
+                            "bracket_group": None,
+                            "bracket_identifier": None,
+                            "pool_group": None,
+                            "pool_placement": None
+                        })
+                        continue
+
             members = []
 
             # Normalize each participant: we only keep a few fields needed downstream.
@@ -919,6 +971,8 @@ def get_event_top_teams(event_slug: str, top_n: int, use_phase_fallback: bool = 
             bracket_identifier = None
 
             if entrant_id is not None:
+                import time
+                time.sleep(0.3)  # Rate limiting
                 elimination_set_id = get_entrant_last_elimination_set_id(event_id, entrant_id)
 
                 # Get set details for bracket position sorting
@@ -967,23 +1021,41 @@ def get_event_top_teams(event_slug: str, top_n: int, use_phase_fallback: bool = 
             num_placeholders = top_n - len(results)
             print(f"[INFO] Adding {num_placeholders} empty placeholders for ongoing/unfilled positions")
             for i in range(num_placeholders):
+                # Create empty member entries (3 for Rocket League standard)
+                empty_members = [
+                    {"player_id": None, "player_tag": "", "player_country": None},
+                    {"player_id": None, "player_tag": "", "player_country": None},
+                    {"player_id": None, "player_tag": "", "player_country": None}
+                ]
                 results.append({
                     "placement": len(results) + 1,
                     "team_name": None,  # Empty placeholder
-                    "members": [],
+                    "members": empty_members,
                     "elimination_set_id": None,
                     "bracket_group": None,
                     "bracket_identifier": None
                 })
 
-    # Sort by pool placement and group for proper Liquipedia ordering
+    # Sort by pool placement and bracket position for proper Liquipedia ordering
     # 1. By pool placement (1st place, 2nd place, 3rd place across all pools)
-    # 2. By pool group (A1, A2, A3, A4 within each placement tier)
-    # 3. By bracket identifier (for teams eliminated in same round)
-    results.sort(key=lambda r: (
-        r.get("pool_placement") or 9999,  # Primary: sort by placement within pool (1st, 2nd, etc.)
-        r.get("pool_group") or "ZZZZ",  # Secondary: by pool group (A1, A2, A3, A4)
-        r.get("bracket_identifier") or "ZZZZ"  # Tertiary: by match identifier (AL, AM, U, etc.)
-    ))
+    # 2. By pool group (B1, B2, etc.) - groups teams from same bracket
+    # 3. By bracket identifier within each pool group
+    #    - Teams with bracket_id come first (sorted by length, then alphabetically)
+    #    - Teams without bracket_id come last
+    #    This ensures within each group: A, B, ..., Z, AA, AB, ..., AL, AM, ..., (no ID teams)
+    def sort_key(r):
+        bracket_id = r.get("bracket_identifier") or ""
+        # Sort by: (pool_placement, pool_group, has_bracket_id, length, ID)
+        # Use 0 for teams with ID (come first), 1 for teams without ID (come last)
+        has_id = 0 if bracket_id else 1
+        return (
+            r.get("pool_placement") or 9999,
+            r.get("pool_group") or "ZZZZ",  # Group teams by pool first
+            has_id,  # Teams with bracket ID before teams without
+            len(bracket_id),  # Single letters before double letters
+            bracket_id
+        )
+
+    results.sort(key=sort_key)
 
     return results[:top_n]
