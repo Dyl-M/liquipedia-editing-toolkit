@@ -193,6 +193,149 @@ def generate_team_cards_tabs_from_json(json_path: str, segments: List[int], remo
     return "\n".join(content_blocks)
 
 
+def format_team_participants_opponent_from_entry(entry: Dict[str, Any], remove_empty_optional: bool = False) -> str:
+    """
+    Format a team entry into the new Liquipedia TeamParticipants Opponent format.
+
+    Structure:
+    |{{Opponent|
+      |players={{Persons
+        |{{Person|PlayerName|flag=xx}}
+        |{{Person|PlayerName|flag=xx}}
+        |{{Person|PlayerName|flag=xx}}
+      }}
+    }}
+
+    Args:
+        entry: Team dictionary with keys like "team_name" and "members".
+        remove_empty_optional: If True, omit substitute/coach entries when they would be empty.
+
+    Returns:
+        A string representing a single Opponent entry within TeamParticipants.
+    """
+    # Handle empty placeholder
+    if entry is None or not entry.get("team_name"):
+        return "|{{Opponent|}}"
+
+    team_name = _safe_str(entry.get("team_name"))
+    members: List[Dict[str, Any]] = entry.get("members", [])
+
+    # Build the Persons entries
+    person_lines = []
+    for member in members:
+        player_tag = _safe_str(member.get("player_tag"))
+        player_flag = _normalize_flag(member.get("player_country"))
+
+        # Skip empty members if remove_empty_optional is True
+        if remove_empty_optional and not player_tag:
+            continue
+
+        person_lines.append(f"    |{{{{Person|{player_tag}|flag={player_flag}}}}}")
+
+    # Build the complete Opponent structure
+    lines = [
+        f"|{{{{Opponent|{team_name}",
+        "  |players={{Persons"
+    ]
+    lines.extend(person_lines)
+    lines.append("  }}")
+    lines.append("}}")
+
+    return "\n".join(lines)
+
+
+def generate_team_participants_from_json(json_path: str, remove_empty_optional: bool = False) -> str:
+    """
+    Load a JSON file (list of teams) and return a TeamParticipants block
+    containing all teams in the new format.
+
+    Args:
+        json_path: Path to the input JSON file (e.g., _data/tournament-name.json).
+        remove_empty_optional: If True, omit empty player entries.
+
+    Returns:
+        A string with all teams wrapped in a TeamParticipants template.
+
+    Raises:
+        ValueError: If the JSON root is not a list of teams.
+    """
+    with open(json_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    if not isinstance(data, list):
+        raise ValueError("Le JSON attendu doit être une liste d'équipes.")
+
+    opponents = [format_team_participants_opponent_from_entry(entry, remove_empty_optional) for entry in data]
+
+    lines = ["{{TeamParticipants"]
+    lines.extend(opponents)
+    lines.append("}}")
+
+    return "\n".join(lines)
+
+
+def generate_team_participants_tabs_from_json(json_path: str, segments: List[int],
+                                              remove_empty_optional: bool = False) -> str:
+    """
+    Generate a full block with dynamic tabs using the new TeamParticipants format.
+
+    Structure:
+    {{Tabs dynamic
+    |name1=Top 12
+    |name2=Places 13-32
+    |content1=
+    {{TeamParticipants
+    |{{Opponent|...|players={{Persons|{{Person|...|flag=}}}}}}
+    ...
+    }}
+    |content2=
+    {{TeamParticipants
+    ...
+    }}
+    }}
+
+    Args:
+        json_path: Path to the input teams JSON file.
+        segments: Sorted list of upper placement bounds used to create tabs (e.g., [12, 32]).
+        remove_empty_optional: If True, omit empty player entries.
+
+    Returns:
+        A string containing a Tabs dynamic block with TeamParticipants sections.
+
+    Raises:
+        ValueError: If the JSON root is not a list of teams.
+    """
+    with open(json_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    if not isinstance(data, list):
+        raise ValueError("Le JSON attendu doit être une liste d'équipes.")
+
+    header = _build_tabs_header(segments)
+    buckets = _split_entries_by_segments(data, segments)
+
+    # Build the content blocks
+    content_blocks: List[str] = [header]
+
+    for idx, bucket in enumerate(buckets, start=1):
+        opponents = [format_team_participants_opponent_from_entry(entry, remove_empty_optional) for entry in bucket]
+
+        # Section contentX
+        content_blocks.append(f"|content{idx}=")
+
+        # TeamParticipants block for this segment
+        tp_lines = ["{{TeamParticipants"]
+        tp_lines.extend(opponents)
+        tp_lines.append("}}")
+
+        content_blocks.append("\n".join(tp_lines))
+
+    # Close the Tabs
+    content_blocks.append("}}")
+
+    return "\n".join(content_blocks)
+
+
 def get_true_player_name(player_name_input: str, user_agent: Optional[str] = None) -> None | str:
     """
     Given a Rocket League player name (query), returns the page title chosen by Liquipedia editors (top-of-page title).
@@ -316,7 +459,7 @@ def _build_tabs_header(segments: List[int]) -> str:
         # Un seul onglet sans borne -> "All"
         return "{{Tabs dynamic\n|name1=All"
 
-    lines = ["{{TeamCardToggleButton}}\n{{Team card columns start|cols=4}}\n{{Tabs dynamic"]
+    lines = ["{{Tabs dynamic"]
     prev_end = 0
     for idx, end in enumerate(segments, start=1):
         if idx == 1:

@@ -139,6 +139,64 @@ def get_event_id(comp_slug: str) -> tuple:
     raise Exception(f'Error getting event identifiers: {ids}')
 
 
+def has_incomplete_sets(event_id: int, entrant_id: int) -> bool:
+    """
+    Check if an entrant has any incomplete sets (matches not yet finished).
+
+    Parameters
+    ----------
+    event_id : int
+        The internal event ID.
+    entrant_id : int
+        The entrant ID to check.
+
+    Returns
+    -------
+    bool
+        True if the entrant has incomplete sets (still playing), False otherwise.
+    """
+    r_body = {
+        "query": """
+        query EntrantIncompleteSets($eventId: ID!, $entrantId: ID!) {
+          event(id: $eventId) {
+            id
+            sets(
+              page: 1
+              perPage: 1
+              filters: {
+                entrantIds: [$entrantId]
+                state: [1, 2]
+              }
+            ) {
+              pageInfo {
+                total
+              }
+            }
+          }
+        }
+        """,
+        "variables": {
+            "eventId": event_id,
+            "entrantId": entrant_id
+        }
+    }
+
+    resp = requests.post(url=API_URL, json=r_body, headers=QUERIES_HEADER)
+    if not resp.ok:
+        return False  # Assume no incomplete sets if request fails
+
+    data = resp.json()
+    if data.get("errors"):
+        return False
+
+    event = (data.get("data") or {}).get("event") or {}
+    sets = event.get("sets") or {}
+    page_info = sets.get("pageInfo") or {}
+    total = page_info.get("total", 0)
+
+    return total > 0  # True if there are any incomplete sets
+
+
 def get_entrant_last_elimination_set_id(event_id: int, entrant_id: int) -> int | None:
     """Return the ID of the most recent completed set that eliminated the given entrant.
 
@@ -400,8 +458,10 @@ def _get_phase_groups_with_standings(event_id: int) -> list:
         phase_state = phase.get("state")
         phase_num_seeds = phase.get("numSeeds", 0)
 
-        # Only process completed phases (state == 3 or "COMPLETED")
-        if phase_state not in [3, "COMPLETED"]:
+        # Process completed or ongoing phases (COMPLETED=3, STARTED=2, ACTIVE="ACTIVE")
+        # Skip only CREATED (1) or unknown states
+        if phase_state not in [2, 3, "STARTED", "ACTIVE", "COMPLETED"]:
+            print(f"[INFO] Skipping phase '{phase_name}' (state={phase_state}) - not started yet")
             continue
 
         # Skip phases with too many participants (> 512) to avoid API timeouts
@@ -527,7 +587,7 @@ def _get_phase_group_standings_with_participants(phase_group_id: int) -> list:
     return all_standings
 
 
-def _get_teams_from_phase_groups(event_id: int, event_slug: str, top_n: int) -> list:
+def _get_teams_from_phase_groups(event_id: int, event_slug: str, top_n: int, only_finalized_placements: bool = True) -> list:
     """
     Fallback method to get teams from phase group standings when event standings are empty.
 
@@ -541,6 +601,9 @@ def _get_teams_from_phase_groups(event_id: int, event_slug: str, top_n: int) -> 
         The event slug (for logging).
     top_n : int
         Number of teams to fetch.
+    only_finalized_placements : bool, optional
+        If True (default), only include teams whose placement is finalized (eliminated teams
+        or tournament winners). If False, include all teams with standings.
 
     Returns
     -------
@@ -550,7 +613,7 @@ def _get_teams_from_phase_groups(event_id: int, event_slug: str, top_n: int) -> 
     phase_groups = _get_phase_groups_with_standings(event_id)
 
     if not phase_groups:
-        print(f"[WARN] No completed phase groups found for '{event_slug}'")
+        print(f"[WARN] No phase groups found for '{event_slug}'")
         return []
 
     # Organize teams by their placement within groups
@@ -598,16 +661,47 @@ def _get_teams_from_phase_groups(event_id: int, event_slug: str, top_n: int) -> 
                     "player_country": country_iso2((((p.get("user") or {}).get("location") or {}).get("country")))
                 })
 
-            # Get elimination set id
+            # Check if team is still playing (has incomplete sets)
+            import time
+            time.sleep(0.5)  # Rate limiting
+
+            is_still_playing = False
+            if entrant_id is not None and only_finalized_placements:
+                is_still_playing = has_incomplete_sets(event_id, entrant_id)
+                if is_still_playing:
+                    # This team still has matches to play, skip it
+                    continue
+
+            # Get elimination set id and details for sorting by bracket position
             elimination_set_id = None
+            bracket_group = None
+            bracket_identifier = None
+
             if entrant_id is not None:
                 elimination_set_id = get_entrant_last_elimination_set_id(event_id, entrant_id)
+
+                # Get set details for bracket position sorting
+                if elimination_set_id:
+                    time.sleep(0.5)  # Rate limiting
+                    set_details = get_set_details(elimination_set_id)
+                    if set_details:
+                        identifier = set_details.get("identifier", "")
+                        # Extract group and identifier (e.g., "B1 AL" -> group="B1", id="AL")
+                        # Format can be "AL", "B1 AL", etc.
+                        parts = identifier.split()
+                        if len(parts) >= 2:
+                            bracket_group = parts[0]  # e.g., "B1"
+                            bracket_identifier = parts[1]  # e.g., "AL"
+                        else:
+                            bracket_identifier = identifier
 
             results.append({
                 "placement": cumulative_placement,
                 "team_name": team.get("team_name"),
                 "members": members,
-                "elimination_set_id": elimination_set_id
+                "elimination_set_id": elimination_set_id,
+                "bracket_group": bracket_group,
+                "bracket_identifier": bracket_identifier
             })
 
             cumulative_placement += 1
@@ -618,11 +712,52 @@ def _get_teams_from_phase_groups(event_id: int, event_slug: str, top_n: int) -> 
         if len(results) >= top_n:
             break
 
+    # Sort by bracket position (group first, then identifier)
+    results.sort(key=lambda t: (
+        t.get("bracket_group") or "ZZZZ",  # Put teams without group at end
+        t.get("bracket_identifier") or "ZZZZ"
+    ))
+
+    # Reassign placements after sorting
+    for idx, team in enumerate(results, 1):
+        team["placement"] = idx
+
     print(f"[INFO] Retrieved {len(results)} teams from phase group standings")
     return results
 
 
-def get_event_top_teams(event_slug: str, top_n: int, use_phase_fallback: bool = True) -> list:
+def _get_pool_placements_map(event_id: int) -> dict:
+    """
+    Get a mapping of entrant_id to their pool group and placement.
+
+    Parameters
+    ----------
+    event_id : int
+        The internal event ID.
+
+    Returns
+    -------
+    dict
+        Mapping of {entrant_id: {"pool_group": str, "pool_placement": int}}
+    """
+    phase_groups = _get_phase_groups_with_standings(event_id)
+    pool_map = {}
+
+    for pg in phase_groups:
+        group_id = pg["group_identifier"]
+        for standing in pg["standings"]:
+            entrant_id = standing.get("entrant_id")
+            if entrant_id:
+                pool_map[entrant_id] = {
+                    "pool_group": group_id,
+                    "pool_placement": standing.get("placement")
+                }
+
+    return pool_map
+
+
+def get_event_top_teams(event_slug: str, top_n: int, use_phase_fallback: bool = True,
+                        only_finalized_placements: bool = True) -> list:
     """
     Fetch the top-N teams for a given event (by slug), ordered by placement via event.standings. The output includes
     teams' name and a list of members (player id, gamer tag, ISO-2 country code).
@@ -636,6 +771,9 @@ def get_event_top_teams(event_slug: str, top_n: int, use_phase_fallback: bool = 
     use_phase_fallback : bool, optional
         If True (default), when event standings are empty (ongoing event), automatically
         fall back to fetching from phase group standings. Set to False to disable this behavior.
+    only_finalized_placements : bool, optional
+        If True (default), only include teams with confirmed placements (eliminated or qualified).
+        Teams still playing will be replaced with empty placeholders. Set to False to include all teams.
 
     Returns
     -------
@@ -669,12 +807,19 @@ def get_event_top_teams(event_slug: str, top_n: int, use_phase_fallback: bool = 
     - If fewer teams exist than requested, the function returns as many as available.
     - For ongoing events where event standings are empty, falls back to phase group standings
       (requires get_phase_results module from prize_pool_filler).
+    - When only_finalized_placements=True, teams with incomplete sets (ongoing matches) are
+      replaced with empty placeholders to allow manual editing later.
     """
     if top_n <= 0:
         return []
 
     # Resolve the event's internal ID before querying standings
     event_id, _ = get_event_id(event_slug)
+
+    # Fetch pool placements map to enrich team data with pool group information
+    print(f"[INFO] Fetching pool group placements...")
+    pool_map = _get_pool_placements_map(event_id)
+    print(f"[INFO] Found pool data for {len(pool_map)} teams")
 
     results = []
     page = 1
@@ -763,16 +908,44 @@ def get_event_top_teams(event_slug: str, top_n: int, use_phase_fallback: bool = 
                     "player_country": country_iso2((((p.get("user") or {}).get("location") or {}).get("country")))
                 })
 
+            # Get pool group and placement information
+            pool_info = pool_map.get(entrant_id, {}) if entrant_id else {}
+            pool_group = pool_info.get("pool_group")
+            pool_placement = pool_info.get("pool_placement")
+
             # Compute the elimination set id (None for champions or if not determinable).
             elimination_set_id = None
+            bracket_group = None
+            bracket_identifier = None
+
             if entrant_id is not None:
                 elimination_set_id = get_entrant_last_elimination_set_id(event_id, entrant_id)
+
+                # Get set details for bracket position sorting
+                if elimination_set_id:
+                    import time
+                    time.sleep(0.5)  # Rate limiting
+                    set_details = get_set_details(elimination_set_id)
+                    if set_details:
+                        identifier = set_details.get("identifier", "")
+                        # Extract group and identifier (e.g., "B1 AL" -> group="B1", id="AL")
+                        # Format can be "AL", "B1 AL", etc.
+                        parts = identifier.split()
+                        if len(parts) >= 2:
+                            bracket_group = parts[0]  # e.g., "B1"
+                            bracket_identifier = parts[1]  # e.g., "AL"
+                        else:
+                            bracket_identifier = identifier
 
             results.append({
                 "placement": placement,
                 "team_name": team_name,
                 "members": members,
-                "elimination_set_id": elimination_set_id
+                "elimination_set_id": elimination_set_id,
+                "bracket_group": bracket_group,
+                "bracket_identifier": bracket_identifier,
+                "pool_group": pool_group,
+                "pool_placement": pool_placement
             })
 
         # Pagination bookkeeping: move to the next page and stop when we pass totalPages.
@@ -785,11 +958,32 @@ def get_event_top_teams(event_slug: str, top_n: int, use_phase_fallback: bool = 
     # If no results from event standings and fallback is enabled, try phase group standings
     if not results and use_phase_fallback:
         print(f"[INFO] Event standings empty for '{event_slug}', attempting phase group fallback...")
-        results = _get_teams_from_phase_groups(event_id, event_slug, top_n)
+        # Set only_finalized_placements=True to only include teams with confirmed placements
+        # (eliminated teams). Empty placeholders will be added later for unfilled positions.
+        results = _get_teams_from_phase_groups(event_id, event_slug, top_n, only_finalized_placements=True)
 
-    # Ensure ascending order by placement and slice to top_n to match the requested size.
+        # Pad with empty placeholders if we got fewer teams than requested
+        if len(results) < top_n:
+            num_placeholders = top_n - len(results)
+            print(f"[INFO] Adding {num_placeholders} empty placeholders for ongoing/unfilled positions")
+            for i in range(num_placeholders):
+                results.append({
+                    "placement": len(results) + 1,
+                    "team_name": None,  # Empty placeholder
+                    "members": [],
+                    "elimination_set_id": None,
+                    "bracket_group": None,
+                    "bracket_identifier": None
+                })
+
+    # Sort by pool placement and group for proper Liquipedia ordering
+    # 1. By pool placement (1st place, 2nd place, 3rd place across all pools)
+    # 2. By pool group (A1, A2, A3, A4 within each placement tier)
+    # 3. By bracket identifier (for teams eliminated in same round)
     results.sort(key=lambda r: (
-        r.get("placement") is None, r.get("placement"),
-        r.get("elimination_set_id") is None, r.get("elimination_set_id")
+        r.get("pool_placement") or 9999,  # Primary: sort by placement within pool (1st, 2nd, etc.)
+        r.get("pool_group") or "ZZZZ",  # Secondary: by pool group (A1, A2, A3, A4)
+        r.get("bracket_identifier") or "ZZZZ"  # Tertiary: by match identifier (AL, AM, U, etc.)
     ))
+
     return results[:top_n]

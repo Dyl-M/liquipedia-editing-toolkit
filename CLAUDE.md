@@ -30,25 +30,44 @@ The codebase is organized into three main functional modules:
 
 ### 1. Tournament Page Filler (`src/tournament_page_filler/`)
 
-**Purpose:** Retrieve tournament results from start.gg and generate Liquipedia TeamCard wikitext.
+**Purpose:** Retrieve tournament results from start.gg and generate Liquipedia wikitext in multiple formats.
 
 - **`startgg_tools.py`**: Interacts with start.gg GraphQL API
   - `get_event_id(comp_slug)`: Resolves event slug to internal ID
-  - `get_event_top_teams(event_slug, top_n)`: Fetches top N teams with placement, team names, player info (id, tag, country)
+  - `get_event_top_teams(event_slug, top_n, use_phase_fallback=True)`: Fetches top N teams with placement, team names, player info (id, tag, country)
+    - **Enhanced:** Automatically detects ongoing tournaments and falls back to phase group standings when event standings are incomplete
+    - Set `use_phase_fallback=False` to disable fallback behavior
+  - `_get_phase_groups_with_standings(event_id)`: Internal helper to fetch standings from phase groups for ongoing tournaments
   - `country_iso2(country_str)`: Normalizes country names to ISO 3166-1 alpha-2 codes using pycountry
   - Internal helper `_get_entrant_last_elimination_set_id()`: Determines the set that eliminated each team
 
 - **`liquipedia_tools.py`**: Generates Liquipedia wikitext templates
-  - `format_team_card_from_entry(entry)`: Converts a team dict to TeamCard template
-  - `generate_team_cards_from_json(json_path)`: Batch generates TeamCards from JSON file
-  - `generate_team_cards_tabs_from_json(json_path, segments)`: Creates tabbed sections (e.g., "Top 12", "Places 13-32") with boxed TeamCards
-  - `get_true_player_name(player_name_input)`: Queries Liquipedia to get canonical player page titles (handles redirects)
+  - **Old TeamCard Format:**
+    - `format_team_card_from_entry(entry)`: Converts a team dict to TeamCard template
+    - `generate_team_cards_from_json(json_path)`: Batch generates TeamCards from JSON file
+    - `generate_team_cards_tabs_from_json(json_path, segments)`: Creates tabbed sections (e.g., "Top 12", "Places 13-32") with boxed TeamCards
+  - **New TeamParticipants Format:**
+    - `format_team_participants_opponent_from_entry(entry)`: Converts a team dict to TeamParticipants Opponent format
+    - `generate_team_participants_from_json(json_path)`: Batch generates TeamParticipants from JSON file
+    - `generate_team_participants_tabs_from_json(json_path, segments)`: Creates tabbed sections using TeamParticipants format
+  - **Utilities:**
+    - `get_true_player_name(player_name_input)`: Queries Liquipedia to get canonical player page titles (handles redirects)
 
 **Data Flow:**
 1. Call `startgg_tools.get_event_top_teams()` with event slug and top_n
+   - For ongoing tournaments: Automatically falls back to phase group standings
+   - For completed tournaments: Uses event-level standings
 2. Save results to `_data/{tournament-name}.json`
-3. Use `liquipedia_tools.generate_team_cards_*()` to convert JSON to wikitext
+3. Use `liquipedia_tools.generate_team_cards_*()` or `generate_team_participants_*()` to convert JSON to wikitext
 4. Copy wikitext to Liquipedia tournament pages
+
+**Application Scripts:**
+- **`src/generate_team_participants.py`**: Main application for generating TeamParticipants wikitext
+  - `generate_team_participants_wikitext(event_slug, top_n, segments, output_file, save_json)`: Complete workflow from API to wikitext
+  - `generate_from_existing_json(json_path, segments, output_file)`: Generate from cached JSON data
+  - Handles UTF-8 encoding, file I/O, and progress reporting
+  - Configurable via script variables or can be imported as a module
+- **`src/test_team_participants.py`**: Test script demonstrating both old and new formats
 
 ### 2. Stream Filler (`src/stream_filler/`)
 
@@ -135,6 +154,17 @@ process_prizepool_from_event(
 
 ## Development Workflow
 
+### Debugging Utilities
+
+The project includes several debugging scripts for exploring start.gg API responses:
+
+- **`src/check_event_standings.py`**: Check if event-level standings are available (used to determine if a tournament is complete)
+- **`src/check_active_teams.py`**: Check for incomplete/ongoing sets in an event
+- **`src/check_groups.py`**: Display phase group structure and standings
+- **`src/debug_phases.py`**: Show detailed phase structure including state, seeds, and bracket types
+
+These scripts are useful for understanding tournament state and troubleshooting data fetching issues.
+
 ### Testing/Sandbox
 Use `src/_sandbox.py` for experimentation. Current example:
 ```python
@@ -166,9 +196,23 @@ print(lp_t.generate_team_cards_tabs_from_json("../_data/3v3-sam-champions-road-2
 ### Liquipedia Integration
 - User-Agent header required: Set `DEFAULT_USER_AGENT` in `liquipedia_tools.py` with contact info
 - Wikitext templates follow Liquipedia Rocket League conventions
-- TeamCard structure: team name, 3 starters (p1-p3), 1 substitute (s4), 1 coach (c)
 - Country flags use lowercase ISO-2 codes (e.g., "fr", "us")
 - Box/Tabs formatting uses `{{box|start}}`, `{{box|break}}`, `{{box|end}}` and `{{Tabs dynamic}}`
+
+#### Template Formats
+
+**Old TeamCard Format:**
+- Structure: team name, 3 starters (p1-p3), 1 substitute (s4), 1 coach (c)
+- Syntax: `{{TeamCard|team=...|p1=...|p1flag=...|p2=...|p2flag=...}}`
+- Wrapped in box templates for visual grouping
+- Still supported and used in many tournament pages
+
+**New TeamParticipants Format:**
+- More structured format using nested templates
+- Syntax: `{{TeamParticipants|{{Opponent|TeamName|players={{Persons|{{Person|PlayerName|flag=xx}}}}}}}`
+- Supports variable number of players per team
+- Used in newer tournament pages (e.g., Monthly Cash Cups)
+- No box wrappers needed - handled by the template itself
 
 ### Path Conventions
 - Token file: `../../_token/start.gg-token.txt` (relative to `src/tournament_page_filler/startgg_tools.py`)

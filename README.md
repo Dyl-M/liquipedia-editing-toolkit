@@ -5,10 +5,15 @@ Toolkit facilitating Liquipedia pages editing.
 ## Features
 
 ### 1. Tournament Page Filler
-Generate Liquipedia TeamCard wikitext from start.gg tournament results:
+Generate Liquipedia wikitext from start.gg tournament results:
+- **Ongoing Tournament Support:** Fetch data from live tournaments using phase group fallback
+- **Two Format Options:**
+  - Legacy TeamCard format for older pages
+  - Modern TeamParticipants format for newer tournament pages
 - Fetch top N teams with placement, player info, and country data
-- Generate formatted TeamCards with tabs for different placement ranges
+- Generate formatted output with tabs for different placement ranges
 - Query Liquipedia for canonical player names
+- Automatic detection of completed vs. ongoing tournaments
 
 ### 2. Stream Filler
 Insert Twitch/YouTube stream links into Liquipedia match brackets:
@@ -57,18 +62,41 @@ This file is gitignored and must be created manually.
 
 See [CLAUDE.md](CLAUDE.md) for detailed architecture, API documentation, and development workflow.
 
+## Quick Start Examples
+
+### Generate TeamParticipants Wikitext
+
+For ongoing or completed tournaments:
+
+```bash
+python src/generate_team_participants.py
+```
+
+Edit the script to configure your tournament:
+```python
+EVENT_SLUG = "tournament/your-tournament/event/3v3-bracket"
+TOP_N = 32
+SEGMENTS = [12, 32]  # Creates "Top 12" and "Places 13-32" tabs
+```
+
+See `src/tournament_page_filler/README_TEAM_PARTICIPANTS.md` for detailed documentation.
+
 ## Project Structure
 
 ```
 src/
-├── tournament_page_filler/  # Generate TeamCards from tournament results
-│   ├── startgg_tools.py     # start.gg GraphQL API wrapper
-│   └── liquipedia_tools.py  # Liquipedia wikitext generation
-├── stream_filler/           # Insert stream links into brackets
+├── tournament_page_filler/           # Generate TeamCards/TeamParticipants from results
+│   ├── startgg_tools.py              # start.gg GraphQL API wrapper
+│   ├── liquipedia_tools.py           # Liquipedia wikitext generation
+│   └── README_TEAM_PARTICIPANTS.md   # TeamParticipants format guide
+├── stream_filler/                    # Insert stream links into brackets
 │   └── insert_streams.py
-└── prizepool_filler/        # Fill prize pool sections automatically
-    ├── fill_prize_pool.py   # Main workflow and filling logic
-    ├── get_phase_results.py # Handle ongoing tournaments
-    └── example_usage.py     # Usage examples
+├── prize_pool_filler/                # Fill prize pool sections automatically
+│   ├── fill_prize_pool.py            # Main workflow and filling logic
+│   ├── get_phase_results.py          # Handle ongoing tournaments
+│   └── run_fill.py                   # Quick script to run the filler
+├── generate_team_participants.py     # Main script for TeamParticipants generation
+├── test_team_participants.py         # Test/demo for both formats
+└── check_*.py, debug_*.py            # Debugging utilities for start.gg API
 ```
 
