@@ -1,0 +1,35 @@
+version: 2
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      time: "09:00"
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: "deps(python):"
+    labels:
+      - "📦 dependencies"
+      - "🐍 python"
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      time: "09:00"
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: "deps(github-actions):"
+    labels:
+      - "📦 dependencies"
+      - "🤖 github_actions"
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
+
+# Docs: https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
