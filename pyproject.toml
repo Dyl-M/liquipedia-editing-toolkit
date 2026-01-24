@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "liquipedia-editing-toolkit"
-version = "0.0.0-alpha"
+version = "0.0.1-alpha"
 description = "CLI toolkit for start.gg and Liquipedia integration for esports tournaments"
 readme = "README.md"
 license = "MIT"
@@ -24,15 +24,21 @@ classifiers = [
 ]
 
 dependencies = [
-    # To be defined during rework
+    "beautifulsoup4>=4.12.0",
+    "pycountry>=24.6.1",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "requests>=2.31.0",
+    "typer>=0.12.0",
 ]
 
 [project.optional-dependencies]
 dev = [
+    "mypy>=1.14.0",
     "pytest>=8.0.0",
     "pytest-cov>=6.0.0",
     "ruff>=0.9.0",
-    "mypy>=1.14.0",
+    "types-beautifulsoup4>=4.12.0",
     "types-requests>=2.32.0",
 ]
 
@@ -66,7 +72,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["lptk"]
+known-first-party = ["lptk", "_tests"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -82,7 +88,7 @@ module = [
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["_tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
