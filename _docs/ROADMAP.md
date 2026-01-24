@@ -163,7 +163,7 @@ cli/main.py
 
 ## Version Milestones
 
-### v0.0.0-alpha - Project Setup (Current)
+### v0.0.0-alpha - Project Setup (Complete)
 
 **Goal**: Establish project structure and development infrastructure
 
@@ -178,17 +178,19 @@ cli/main.py
 
 ---
 
-### v0.0.1-alpha - Foundation
+### v0.0.1-alpha - Foundation (Current)
 
 **Goal**: Establish package structure and core infrastructure
 
-- [ ] Create `lptk/` package skeleton
-- [ ] Implement `config.py` with environment-based settings
-- [ ] Define custom exception hierarchy in `exceptions.py`
-- [ ] Set up logging configuration
-- [ ] Update `pyproject.toml` with dependencies and entry points
-- [ ] Set up `tests/` structure with pytest and coverage
-- [ ] Write tests for config and exceptions (80%+ coverage)
+- [x] Create `lptk/` package skeleton
+- [x] Implement `config.py` with environment-based settings
+- [x] Define custom exception hierarchy in `exceptions.py`
+- [x] Set up logging configuration
+- [x] Update `pyproject.toml` with dependencies and entry points
+- [x] Set up `_tests/` structure with pytest and coverage
+- [x] Write tests for config and exceptions (100% coverage achieved)
+- [x] Create `lptk/README.md` (package overview)
+- [x] Create `_tests/README.md` (test suite documentation)
 
 **Deliverables**: Importable package with configuration system and test infrastructure
 
@@ -203,6 +205,8 @@ cli/main.py
 - [ ] Create Pydantic models for API responses
 - [ ] Add rate limiting and retry logic
 - [ ] Write unit tests with mocked responses (80%+ coverage for new code)
+- [ ] Create `lptk/api/README.md` (API clients documentation)
+- [ ] Create `lptk/models/README.md` (data models documentation)
 
 **Deliverables**: Fully functional API layer maintaining 80%+ overall coverage
 
@@ -218,6 +222,9 @@ cli/main.py
 - [ ] Migrate `stream_filler` to `tools/streams.py`
 - [ ] Remove code duplication between modules
 - [ ] Write tests for tools and wikitext modules (80%+ coverage for new code)
+- [ ] Create `lptk/wikitext/README.md` (wikitext parsing and generation documentation)
+- [ ] Create `lptk/tools/README.md` (business logic tools documentation)
+- [ ] Create `lptk/utils/README.md` (utility functions documentation)
 
 **Deliverables**: All three tools working with new architecture, maintaining 80%+ overall coverage
 
@@ -235,6 +242,7 @@ cli/main.py
 - [ ] Add `--version` flag
 - [ ] Create shell completion scripts
 - [ ] Write CLI tests (80%+ coverage for new code)
+- [ ] Create `lptk/cli/README.md` (CLI commands documentation)
 
 **Deliverables**: Fully functional CLI tool maintaining 80%+ overall coverage
 
@@ -272,32 +280,34 @@ cli/main.py
 
 ## Detailed Phases
 
-### Phase 1: Foundation (v0.0.1-alpha)
+### Phase 1: Foundation (v0.0.1-alpha) - Complete
 
 #### Tasks
 
-- [ ] Create directory structure under `lptk/`
-- [ ] Create `__init__.py` with version and public exports
-- [ ] Implement `config.py`:
+- [x] Create directory structure under `lptk/`
+- [x] Create `__init__.py` with version and public exports
+- [x] Implement `config.py`:
     - Token path resolution (env var or default)
     - API URLs as constants
     - Rate limit settings
     - Output directory configuration
-- [ ] Implement `exceptions.py`:
+- [x] Implement `exceptions.py`:
     - `LPTKError` (base)
     - `APIError` (for HTTP/GraphQL errors)
     - `ConfigurationError` (missing token, invalid settings)
     - `WikitextParseError` (malformed input)
-- [ ] Configure logging with `logging` module
-- [ ] Update `pyproject.toml`:
+- [x] Configure logging with `logging` module
+- [x] Update `pyproject.toml`:
     - Add dependencies: `pycountry`, `requests`, `beautifulsoup4`, `pydantic`, `typer`
     - Add dev dependencies: `pytest`, `pytest-cov`, `ruff`, `mypy`
     - Add `[project.scripts]` entry point
-- [ ] Set up test infrastructure:
-    - Create `tests/` directory structure
+- [x] Set up test infrastructure:
+    - Create `_tests/` directory structure
     - Create `conftest.py` with basic fixtures
     - Configure pytest in `pyproject.toml`
-- [ ] Write tests for `config.py` and `exceptions.py`
+- [x] Write tests for `config.py` and `exceptions.py`
+- [x] Create `lptk/README.md` with package overview
+- [x] Create `_tests/README.md` with test suite documentation
 
 #### Dependencies
 
@@ -305,23 +315,26 @@ None (first phase)
 
 #### Acceptance Criteria
 
-- [ ] `import lptk` works without errors
-- [ ] `lptk.config.get_token()` returns token or raises `ConfigurationError`
-- [ ] Logging outputs to stderr with configurable level
-- [ ] `uv sync` installs all dependencies
-- [ ] `pytest --cov=lptk` shows 80%+ coverage
-- [ ] All tests pass
+- [x] `import lptk` works without errors
+- [x] `lptk.config.get_token()` returns token or raises `ConfigurationError`
+- [x] Logging outputs to stderr with configurable level
+- [x] `uv sync` installs all dependencies
+- [x] `pytest --cov=lptk` shows 80%+ coverage (achieved: 100%)
+- [x] All tests pass (44 tests)
 
-#### Files to Create
+#### Files Created
 
 ```
 lptk/__init__.py
 lptk/config.py
 lptk/exceptions.py
-tests/__init__.py
-tests/conftest.py
-tests/test_config.py
-tests/test_exceptions.py
+lptk/py.typed
+lptk/README.md
+_tests/__init__.py
+_tests/conftest.py
+_tests/test_config.py
+_tests/test_exceptions.py
+_tests/README.md
 ```
 
 ---
@@ -355,6 +368,8 @@ tests/test_exceptions.py
 - [ ] Add rate limiting decorator/mixin
 - [ ] Implement retry logic with exponential backoff
 - [ ] Write unit tests with mocked API responses
+- [ ] Create `lptk/api/README.md` with API clients documentation
+- [ ] Create `lptk/models/README.md` with data models documentation
 
 #### Dependencies
 
@@ -376,9 +391,11 @@ tests/test_exceptions.py
 lptk/api/__init__.py
 lptk/api/startgg.py
 lptk/api/liquipedia.py
+lptk/api/README.md
 lptk/models/__init__.py
 lptk/models/team.py
 lptk/models/tournament.py
+lptk/models/README.md
 tests/test_api_startgg.py
 tests/test_api_liquipedia.py
 tests/test_models.py
@@ -414,6 +431,9 @@ tests/test_models.py
     - `utils/countries.py` - ISO code normalization
     - `utils/phase.py` - phase ordering logic
 - [ ] Write tests for tools, wikitext, and utilities
+- [ ] Create `lptk/wikitext/README.md` with wikitext module documentation
+- [ ] Create `lptk/tools/README.md` with tools module documentation
+- [ ] Create `lptk/utils/README.md` with utilities documentation
 
 #### Dependencies
 
@@ -437,6 +457,7 @@ lptk/wikitext/__init__.py
 lptk/wikitext/parser.py
 lptk/wikitext/builder.py
 lptk/wikitext/utils.py
+lptk/wikitext/README.md
 lptk/wikitext/templates/__init__.py
 lptk/wikitext/templates/opponent.py
 lptk/wikitext/templates/slot.py
@@ -446,9 +467,11 @@ lptk/tools/__init__.py
 lptk/tools/participants.py
 lptk/tools/prizepool.py
 lptk/tools/streams.py
+lptk/tools/README.md
 lptk/utils/__init__.py
 lptk/utils/countries.py
 lptk/utils/phase.py
+lptk/utils/README.md
 tests/test_wikitext_parser.py
 tests/test_wikitext_builder.py
 tests/test_wikitext_templates.py
@@ -501,6 +524,7 @@ tests/test_utils.py
 - [ ] Add rich output formatting (tables, colors)
 - [ ] Generate shell completion scripts
 - [ ] Write CLI tests using Typer's CliRunner
+- [ ] Create `lptk/cli/README.md` with CLI commands documentation
 
 #### Dependencies
 
@@ -511,6 +535,7 @@ tests/test_utils.py
 ```
 lptk/cli/__init__.py
 lptk/cli/main.py
+lptk/cli/README.md
 tests/test_cli.py
 ```
 
@@ -586,6 +611,7 @@ tests/fixtures/                    # Real API response samples
     - Update code examples
 - [ ] Add comprehensive type hints
 - [ ] Run `mypy --strict` and fix issues
+- [ ] Ensure `py.typed` marker file exists (PEP 561 compliance for typed package distribution)
 - [ ] Set up pre-commit hooks:
     - ruff (linting + formatting)
     - mypy (type checking)

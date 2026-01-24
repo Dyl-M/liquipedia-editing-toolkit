@@ -7,8 +7,9 @@
 
 Toolkit for automating Liquipedia page editing with data from start.gg esports tournaments (Rocket League focus).
 
-> **Status: v0.0.0-alpha** - Project is being restructured from `src/` to `lptk/` package. Legacy code is archived in
-`_archive/`. See [`_docs/ROADMAP.md`](_docs/ROADMAP.md) for the development plan.
+> **Status: v0.0.1-alpha** - Foundation phase complete. The `lptk/` package now includes configuration management,
+> custom exceptions, and a test suite with 100% coverage. Legacy code remains in `_archive/`.
+> See [`_docs/ROADMAP.md`](_docs/ROADMAP.md) for the development plan.
 
 ## Features
 
@@ -48,12 +49,33 @@ Automatically fill Liquipedia prize pool sections with tournament results:
 - Forfeit handling: Automatically formats forfeit scores as "FF-W" or "W-FF"
 - Phase optimization: Skips large phases (>512 teams) to avoid API timeouts
 
+## Quick Start (New `lptk` Package)
+
+```python
+from lptk import get_settings, get_token, LPTKError
+
+# Access configuration
+settings = get_settings()
+print(settings.startgg_api_url)  # https://api.start.gg/gql/alpha
+
+# Get API token (requires _token/start.gg-token.txt)
+try:
+    token = get_token()
+except LPTKError as e:
+    print(f"Configuration error: {e}")
+```
+
+Environment variables (all prefixed with `LPTK_`):
+- `LPTK_TOKEN_PATH` - Path to API token file
+- `LPTK_LOG_LEVEL` - Logging level (DEBUG, INFO, WARNING, ERROR)
+- `LPTK_RATE_LIMIT_DELAY` - Delay between API calls (seconds)
+
 ## Setup
 
 ### Requirements
 
 - Python 3.12+
-- Dependencies: `pycountry`, `requests`, `beautifulsoup4`
+- Dependencies: `pydantic`, `pydantic-settings`, `requests`, `beautifulsoup4`, `pycountry`, `typer`
 
 ### Installation
 
@@ -83,12 +105,22 @@ This file is gitignored and must be created manually.
 
 ```
 liquipedia-editing-toolkit/
+├── lptk/                             # New package (v0.0.1-alpha)
+│   ├── __init__.py                   # Package exports, version
+│   ├── config.py                     # Settings management (pydantic-settings)
+│   ├── exceptions.py                 # Custom exception hierarchy
+│   ├── py.typed                      # PEP 561 marker
+│   └── README.md                     # Package documentation
+├── _tests/                           # Test suite (100% coverage)
+│   ├── conftest.py                   # Shared fixtures
+│   ├── test_config.py                # Config module tests
+│   ├── test_exceptions.py            # Exception tests
+│   └── README.md                     # Test documentation
 ├── _archive/                         # Legacy code (archived during restructure)
 │   └── src/                          # Original source modules
 │       ├── tournament_page_filler/   # Generate TeamCards/TeamParticipants
 │       ├── stream_filler/            # Insert stream links into brackets
 │       └── prize_pool_filler/        # Fill prize pool sections
-├── lptk/                             # New package structure (in development)
 ├── _docs/                            # Project documentation
 │   └── ROADMAP.md                    # Development roadmap and architecture
 ├── _data/                            # Tournament JSON data (gitignored)
