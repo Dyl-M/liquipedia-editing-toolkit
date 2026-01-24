@@ -102,10 +102,7 @@ def get_settings() -> Settings:
     return Settings()
 
 
-# Token cache (None = not loaded, str = loaded value)
-_token_cache: str | None = None
-
-
+@lru_cache(maxsize=1)
 def get_token() -> str:
     """Get the start.gg API token.
 
@@ -118,11 +115,6 @@ def get_token() -> str:
     Raises:
         ConfigurationError: If the token file is missing or empty.
     """
-    global _token_cache
-
-    if _token_cache is not None:
-        return _token_cache
-
     settings = get_settings()
     token_path = settings.token_path
 
@@ -140,8 +132,7 @@ def get_token() -> str:
             details={"token_path": str(token_path)},
         )
 
-    _token_cache = token
-    return _token_cache
+    return token
 
 
 def clear_token_cache() -> None:
@@ -149,8 +140,7 @@ def clear_token_cache() -> None:
 
     Use this to force reloading the token from disk on the next get_token() call.
     """
-    global _token_cache
-    _token_cache = None
+    get_token.cache_clear()
 
 
 def setup_logging() -> None:

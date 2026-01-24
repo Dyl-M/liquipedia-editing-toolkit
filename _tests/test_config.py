@@ -69,9 +69,8 @@ class TestSettings:
     @staticmethod
     def test_rate_limit_must_be_non_negative(reset_settings: None) -> None:
         """Test that rate_limit_delay cannot be negative."""
-        with env_override(LPTK_RATE_LIMIT_DELAY="-1"):
-            with pytest.raises(ValueError):
-                Settings()
+        with (env_override(LPTK_RATE_LIMIT_DELAY="-1"), pytest.raises(ValueError)):
+            Settings()
 
 
 class TestGetSettings:
@@ -260,6 +259,7 @@ class TestProjectRoot:
         original_exists = Path.exists
 
         def fake_exists(path: Path) -> bool:
+            """Return False for pyproject.toml, otherwise use original exists."""
             if path.name == "pyproject.toml":
                 return False
             return original_exists(path)
