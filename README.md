@@ -1,6 +1,7 @@
 # Liquipedia Editing Toolkit
 
 ![Python](https://img.shields.io/badge/python-3.12+-blue?logo=python&logoColor=white)
+![License](https://img.shields.io/github/license/Dyl-M/liquipedia-editing-toolkit)
 ![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
