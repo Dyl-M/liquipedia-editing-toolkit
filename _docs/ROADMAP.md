@@ -1,27 +1,35 @@
 # LPTK Restructuring Roadmap
 
-This document outlines the complete plan for restructuring the Liquipedia Editing Toolkit from its current archived state (`_archive/src/`) into a modern, maintainable Python package (`lptk/`).
+This document outlines the complete plan for restructuring the Liquipedia Editing Toolkit from its current archived
+state (`_archive/src/`) into a modern, maintainable Python package (`lptk/`).
 
 ---
 
 ## Executive Summary
 
 ### Vision
-Transform the Liquipedia Editing Toolkit into a professional-grade CLI tool with clean architecture, comprehensive testing, and excellent developer experience.
+
+Transform the Liquipedia Editing Toolkit into a professional-grade CLI tool with clean architecture, comprehensive
+testing, and excellent developer experience.
 
 ### Goals
+
 - **Maintainability**: Clear separation of concerns with single-responsibility modules
 - **Usability**: Intuitive CLI with flat command structure
 - **Reliability**: 80% minimum test coverage from day one, targeting 90%+ at v1.0.0
 - **Extensibility**: Easy to add new data sources or output formats
 
 ### Testing Philosophy
-Testing is integrated from the first phase, not an afterthought. Every new module must ship with tests maintaining **80% minimum coverage**. This ensures:
+
+Testing is integrated from the first phase, not an afterthought. Every new module must ship with tests maintaining **80%
+minimum coverage**. This ensures:
+
 - Bugs are caught early when context is fresh
 - Refactoring is safe throughout development
 - Code quality remains consistent across phases
 
 ### Current State
+
 ```
 _archive/src/
 ├── tournament_page_filler/   # Tightly coupled API + formatting logic
@@ -30,13 +38,18 @@ _archive/src/
 ```
 
 ### Target State
+
 ```
 lptk/
 ├── api/                      # Clean API abstraction layer
 │   ├── startgg.py            # start.gg GraphQL client
-│   └── liquipedia.py         # Liquipedia API client
+│   └── liquipedia.py         # Liquipedia API client (reading)
+├── wikitext/                 # Wikitext parsing and generation
+│   ├── parser.py             # Parse templates from wikitext
+│   ├── builder.py            # Build wikitext strings
+│   └── templates/            # Template-specific implementations
 ├── tools/                    # Business logic modules
-│   ├── participants.py       # TeamCard/TeamParticipants generation
+│   ├── participants.py       # Tournament participants generation
 │   ├── prizepool.py          # Prize pool filling
 │   └── streams.py            # Stream link insertion
 ├── cli/                      # Typer-based CLI
@@ -50,6 +63,7 @@ lptk/
 ## Target Architecture
 
 ### Package Structure
+
 ```
 liquipedia-editing-toolkit/
 ├── lptk/
@@ -65,19 +79,25 @@ liquipedia-editing-toolkit/
 │   ├── models/
 │   │   ├── __init__.py
 │   │   ├── team.py           # Team, Player models
-│   │   ├── tournament.py     # Tournament, Phase, Set models
-│   │   └── wikitext.py       # Wikitext template models
+│   │   └── tournament.py     # Tournament, Phase, Set models
+│   │
+│   ├── wikitext/
+│   │   ├── __init__.py
+│   │   ├── parser.py         # Parse templates from wikitext
+│   │   ├── builder.py        # Build wikitext strings
+│   │   ├── utils.py          # Box/Tabs wrappers, common patterns
+│   │   └── templates/        # Template-specific implementations
+│   │       ├── __init__.py
+│   │       ├── opponent.py   # {{Opponent|...}}
+│   │       ├── slot.py       # {{Slot|...}}
+│   │       ├── teamcard.py   # {{TeamCard|...}}
+│   │       └── teamparticipants.py  # {{TeamParticipants|...}}
 │   │
 │   ├── tools/
 │   │   ├── __init__.py
 │   │   ├── participants.py   # Tournament participants logic
 │   │   ├── prizepool.py      # Prize pool filling logic
 │   │   └── streams.py        # Stream insertion logic
-│   │
-│   ├── formatters/
-│   │   ├── __init__.py
-│   │   ├── teamcard.py       # Old TeamCard format
-│   │   └── teamparticipants.py  # New TeamParticipants format
 │   │
 │   ├── cli/
 │   │   ├── __init__.py
@@ -93,7 +113,7 @@ liquipedia-editing-toolkit/
 │   ├── conftest.py           # Shared fixtures
 │   ├── unit/
 │   │   ├── test_models.py
-│   │   ├── test_formatters.py
+│   │   ├── test_wikitext.py
 │   │   └── test_utils.py
 │   └── integration/
 │       ├── test_startgg_api.py
@@ -107,38 +127,59 @@ liquipedia-editing-toolkit/
 
 ### Module Responsibilities
 
-| Module | Responsibility |
-|--------|---------------|
-| `api/startgg.py` | All start.gg GraphQL queries, authentication, rate limiting |
-| `api/liquipedia.py` | Liquipedia API queries, redirect resolution |
-| `models/` | Pydantic models for type safety and validation |
-| `tools/participants.py` | Fetch teams, generate participant wikitext |
-| `tools/prizepool.py` | Parse slots, fill prize pool entries |
-| `tools/streams.py` | Insert stream links into bracket wikitext |
-| `formatters/` | Convert models to wikitext strings |
-| `cli/main.py` | User-facing commands, argument parsing |
-| `config.py` | Token paths, API URLs, rate limits |
+| Module                  | Responsibility                                                            |
+|-------------------------|---------------------------------------------------------------------------|
+| `api/startgg.py`        | All start.gg GraphQL queries, authentication, rate limiting               |
+| `api/liquipedia.py`     | Liquipedia API queries, redirect resolution                               |
+| `models/`               | Pydantic models for type safety and validation                            |
+| `wikitext/parser.py`    | Parse existing wikitext, extract template parameters                      |
+| `wikitext/builder.py`   | Build wikitext strings from models                                        |
+| `wikitext/templates/`   | Template-specific parsing and generation (Opponent, Slot, TeamCard, etc.) |
+| `tools/participants.py` | Fetch teams, orchestrate participant wikitext generation                  |
+| `tools/prizepool.py`    | Parse slots, fill prize pool entries                                      |
+| `tools/streams.py`      | Insert stream links into bracket wikitext                                 |
+| `cli/main.py`           | User-facing commands, argument parsing                                    |
+| `config.py`             | Token paths, API URLs, rate limits                                        |
 
 ### Dependency Graph
+
 ```
 cli/main.py
     │
     ├── tools/participants.py ──┬── api/startgg.py
     │                           ├── api/liquipedia.py
-    │                           ├── formatters/teamcard.py
-    │                           └── formatters/teamparticipants.py
+    │                           └── wikitext/templates/teamcard.py
+    │                           └── wikitext/templates/teamparticipants.py
     │
     ├── tools/prizepool.py ─────┬── api/startgg.py
-    │                           └── models/tournament.py
+    │                           ├── wikitext/parser.py
+    │                           └── wikitext/templates/opponent.py
     │
-    └── tools/streams.py ───────── models/wikitext.py
+    └── tools/streams.py ───────┬── wikitext/parser.py
+                                └── wikitext/builder.py
 ```
 
 ---
 
 ## Version Milestones
 
-### v0.1.0 - Foundation
+### v0.0.0-alpha - Project Setup (Current)
+
+**Goal**: Establish project structure and development infrastructure
+
+- [x] Archive legacy code to `_archive/src/`
+- [x] Create empty `lptk/` package directory
+- [x] Configure `pyproject.toml` with modern tooling
+- [x] Set up GitHub Actions CI/CD workflows
+- [x] Write comprehensive restructuring roadmap
+- [x] Update `CLAUDE.md` with project context
+
+**Deliverables**: Restructured repository ready for development
+
+---
+
+### v0.0.1-alpha - Foundation
+
 **Goal**: Establish package structure and core infrastructure
 
 - [ ] Create `lptk/` package skeleton
@@ -153,7 +194,8 @@ cli/main.py
 
 ---
 
-### v0.2.0 - API Layer
+### v0.0.2-alpha - API Layer
+
 **Goal**: Clean, reusable API clients
 
 - [ ] Implement `StartGGClient` class with all GraphQL queries
@@ -166,21 +208,23 @@ cli/main.py
 
 ---
 
-### v0.3.0 - Tools Migration
+### v0.1.0 - Tools Migration
+
 **Goal**: Port business logic from archived code
 
+- [ ] Implement `wikitext/` module for shared wikitext operations
 - [ ] Migrate `tournament_page_filler` to `tools/participants.py`
 - [ ] Migrate `prize_pool_filler` to `tools/prizepool.py`
 - [ ] Migrate `stream_filler` to `tools/streams.py`
-- [ ] Create formatter modules for wikitext generation
 - [ ] Remove code duplication between modules
-- [ ] Write tests for tools and formatters (80%+ coverage for new code)
+- [ ] Write tests for tools and wikitext modules (80%+ coverage for new code)
 
 **Deliverables**: All three tools working with new architecture, maintaining 80%+ overall coverage
 
 ---
 
-### v0.4.0 - CLI Implementation
+### v0.1.1 - CLI Implementation
+
 **Goal**: User-friendly command-line interface
 
 - [ ] Set up Typer application in `cli/main.py`
@@ -196,7 +240,8 @@ cli/main.py
 
 ---
 
-### v0.5.0 - Test Suite Expansion
+### v0.1.2 - Test Suite Expansion
+
 **Goal**: Expand coverage from 80% to 90%+ and add integration tests
 
 - [ ] Expand unit test coverage to 90%+
@@ -210,6 +255,7 @@ cli/main.py
 ---
 
 ### v1.0.0 - Production Ready
+
 **Goal**: Polish and documentation
 
 - [ ] Update README.md with usage examples
@@ -226,36 +272,39 @@ cli/main.py
 
 ## Detailed Phases
 
-### Phase 1: Foundation (v0.1.0)
+### Phase 1: Foundation (v0.0.1-alpha)
 
 #### Tasks
+
 - [ ] Create directory structure under `lptk/`
 - [ ] Create `__init__.py` with version and public exports
 - [ ] Implement `config.py`:
-  - Token path resolution (env var or default)
-  - API URLs as constants
-  - Rate limit settings
-  - Output directory configuration
+    - Token path resolution (env var or default)
+    - API URLs as constants
+    - Rate limit settings
+    - Output directory configuration
 - [ ] Implement `exceptions.py`:
-  - `LPTKError` (base)
-  - `APIError` (for HTTP/GraphQL errors)
-  - `ConfigurationError` (missing token, invalid settings)
-  - `WikitextParseError` (malformed input)
+    - `LPTKError` (base)
+    - `APIError` (for HTTP/GraphQL errors)
+    - `ConfigurationError` (missing token, invalid settings)
+    - `WikitextParseError` (malformed input)
 - [ ] Configure logging with `logging` module
 - [ ] Update `pyproject.toml`:
-  - Add dependencies: `pycountry`, `requests`, `beautifulsoup4`, `pydantic`, `typer`
-  - Add dev dependencies: `pytest`, `pytest-cov`, `ruff`, `mypy`
-  - Add `[project.scripts]` entry point
+    - Add dependencies: `pycountry`, `requests`, `beautifulsoup4`, `pydantic`, `typer`
+    - Add dev dependencies: `pytest`, `pytest-cov`, `ruff`, `mypy`
+    - Add `[project.scripts]` entry point
 - [ ] Set up test infrastructure:
-  - Create `tests/` directory structure
-  - Create `conftest.py` with basic fixtures
-  - Configure pytest in `pyproject.toml`
+    - Create `tests/` directory structure
+    - Create `conftest.py` with basic fixtures
+    - Configure pytest in `pyproject.toml`
 - [ ] Write tests for `config.py` and `exceptions.py`
 
 #### Dependencies
+
 None (first phase)
 
 #### Acceptance Criteria
+
 - [ ] `import lptk` works without errors
 - [ ] `lptk.config.get_token()` returns token or raises `ConfigurationError`
 - [ ] Logging outputs to stderr with configurable level
@@ -264,6 +313,7 @@ None (first phase)
 - [ ] All tests pass
 
 #### Files to Create
+
 ```
 lptk/__init__.py
 lptk/config.py
@@ -276,9 +326,10 @@ tests/test_exceptions.py
 
 ---
 
-### Phase 2: API Layer (v0.2.0)
+### Phase 2: API Layer (v0.0.2-alpha)
 
 #### Tasks
+
 - [ ] Create `api/__init__.py` with client exports
 - [ ] Implement `StartGGClient`:
   ```python
@@ -299,16 +350,18 @@ tests/test_exceptions.py
       def query_page(self, title: str) -> dict
   ```
 - [ ] Create Pydantic models in `models/`:
-  - `Team`, `Player` in `team.py`
-  - `Tournament`, `Phase`, `PhaseGroup`, `Set`, `SetDetails` in `tournament.py`
+    - `Team`, `Player` in `team.py`
+    - `Tournament`, `Phase`, `PhaseGroup`, `Set`, `SetDetails` in `tournament.py`
 - [ ] Add rate limiting decorator/mixin
 - [ ] Implement retry logic with exponential backoff
 - [ ] Write unit tests with mocked API responses
 
 #### Dependencies
+
 - Phase 1 (config, exceptions, test infrastructure)
 
 #### Acceptance Criteria
+
 - [ ] `StartGGClient().get_event_id("tournament/slug/event/main")` returns valid tuple
 - [ ] All API methods return typed Pydantic models
 - [ ] Rate limiting prevents 429 errors
@@ -318,6 +371,7 @@ tests/test_exceptions.py
 - [ ] All tests pass
 
 #### Files to Create
+
 ```
 lptk/api/__init__.py
 lptk/api/startgg.py
@@ -332,65 +386,84 @@ tests/test_models.py
 
 ---
 
-### Phase 3: Tools Migration (v0.3.0)
+### Phase 3: Tools Migration (v0.1.0)
 
 #### Tasks
+
+- [ ] Create `wikitext/` module:
+    - `wikitext/parser.py` - parse templates from existing wikitext
+    - `wikitext/builder.py` - build wikitext strings
+    - `wikitext/utils.py` - Box/Tabs wrappers, common regex patterns
+    - `wikitext/templates/opponent.py` - {{Opponent|...}} template
+    - `wikitext/templates/slot.py` - {{Slot|...}} template
+    - `wikitext/templates/teamcard.py` - {{TeamCard|...}} template
+    - `wikitext/templates/teamparticipants.py` - {{TeamParticipants|...}} template
 - [ ] Create `tools/__init__.py`
 - [ ] Migrate participants logic:
-  - Port `get_event_top_teams()` cascade algorithm
-  - Port smart placement lock-in logic
-  - Port pool/bracket enrichment
+    - Port `get_event_top_teams()` cascade algorithm
+    - Port smart placement lock-in logic
+    - Port pool/bracket enrichment
 - [ ] Migrate prizepool logic:
-  - Port slot parsing with regex
-  - Port opponent filling algorithm
-  - Port score formatting (including forfeits)
+    - Port slot parsing (using `wikitext/parser.py`)
+    - Port opponent filling algorithm
+    - Port score formatting (including forfeits)
 - [ ] Migrate streams logic:
-  - Port `add_stream_channel()` regex patterns
-  - Port `process_multiple_teams()` batch processing
-- [ ] Create formatter modules:
-  - `formatters/teamcard.py` - old format
-  - `formatters/teamparticipants.py` - new format
+    - Port `add_stream_channel()` regex patterns
+    - Port `process_multiple_teams()` batch processing
 - [ ] Port utilities:
-  - `utils/countries.py` - ISO code normalization
-  - `utils/phase.py` - phase ordering logic
-- [ ] Write tests for tools, formatters, and utilities
+    - `utils/countries.py` - ISO code normalization
+    - `utils/phase.py` - phase ordering logic
+- [ ] Write tests for tools, wikitext, and utilities
 
 #### Dependencies
+
 - Phase 2 (API clients, models)
 
 #### Acceptance Criteria
+
 - [ ] `tools.participants.get_top_teams(slug, 32)` returns same data as archived code
 - [ ] `tools.prizepool.fill_prizepool(wikitext, teams)` produces valid output
 - [ ] `tools.streams.insert_streams(wikitext, configs)` matches archived behavior
-- [ ] No code duplication between tools (shared via api/utils)
-- [ ] All formatters produce valid Liquipedia wikitext
+- [ ] No code duplication between tools (shared via api/wikitext/utils)
+- [ ] All wikitext templates produce valid Liquipedia wikitext
+- [ ] `wikitext.parser` correctly extracts template parameters
 - [ ] `pytest --cov=lptk` shows 80%+ coverage
 - [ ] All tests pass
 
 #### Files to Create
+
 ```
+lptk/wikitext/__init__.py
+lptk/wikitext/parser.py
+lptk/wikitext/builder.py
+lptk/wikitext/utils.py
+lptk/wikitext/templates/__init__.py
+lptk/wikitext/templates/opponent.py
+lptk/wikitext/templates/slot.py
+lptk/wikitext/templates/teamcard.py
+lptk/wikitext/templates/teamparticipants.py
 lptk/tools/__init__.py
 lptk/tools/participants.py
 lptk/tools/prizepool.py
 lptk/tools/streams.py
-lptk/formatters/__init__.py
-lptk/formatters/teamcard.py
-lptk/formatters/teamparticipants.py
 lptk/utils/__init__.py
 lptk/utils/countries.py
 lptk/utils/phase.py
+tests/test_wikitext_parser.py
+tests/test_wikitext_builder.py
+tests/test_wikitext_templates.py
 tests/test_tools_participants.py
 tests/test_tools_prizepool.py
 tests/test_tools_streams.py
-tests/test_formatters.py
 tests/test_utils.py
 ```
 
 ---
 
-### Phase 4: CLI Implementation (v0.4.0)
+### Phase 4: CLI Implementation (v0.1.1)
 
 #### Tasks
+
 - [ ] Create `cli/__init__.py`
 - [ ] Implement `cli/main.py` with Typer app:
   ```python
@@ -430,9 +503,11 @@ tests/test_utils.py
 - [ ] Write CLI tests using Typer's CliRunner
 
 #### Dependencies
+
 - Phase 3 (tools modules)
 
 #### Files to Create
+
 ```
 lptk/cli/__init__.py
 lptk/cli/main.py
@@ -440,11 +515,13 @@ tests/test_cli.py
 ```
 
 #### Files to Modify
+
 ```
 pyproject.toml  # Add [project.scripts] entry point
 ```
 
 #### Acceptance Criteria
+
 - [ ] `lptk --help` shows all commands
 - [ ] `lptk participants --help` shows all options
 - [ ] `lptk participants "tournament/slug/event/main" --top-n 16` produces output
@@ -455,23 +532,26 @@ pyproject.toml  # Add [project.scripts] entry point
 
 ---
 
-### Phase 5: Test Suite Expansion (v0.5.0)
+### Phase 5: Test Suite Expansion (v0.1.2)
 
 #### Tasks
+
 - [ ] Expand test coverage from 80% to 90%+
 - [ ] Add edge case tests for all modules
 - [ ] Add error path and exception tests
 - [ ] Add integration tests with real API calls:
-  - `test_integration_startgg.py` - real API (marked slow)
-  - `test_integration_liquipedia.py` - real API (marked slow)
+    - `test_integration_startgg.py` - real API (marked slow)
+    - `test_integration_liquipedia.py` - real API (marked slow)
 - [ ] Create fixtures with real API response samples
 - [ ] Add GitHub Actions workflow for CI
 - [ ] Configure coverage thresholds in CI (fail if < 80%)
 
 #### Dependencies
+
 - Phase 4 (complete implementation with 80%+ coverage)
 
 #### Acceptance Criteria
+
 - [ ] `pytest` runs all tests successfully
 - [ ] `pytest --cov=lptk` shows 90%+ coverage
 - [ ] `pytest -m "not slow"` skips integration tests
@@ -480,6 +560,7 @@ pyproject.toml  # Add [project.scripts] entry point
 - [ ] Coverage report uploaded to CI artifacts
 
 #### Files to Create
+
 ```
 tests/integration/__init__.py
 tests/integration/test_integration_startgg.py
@@ -493,29 +574,32 @@ tests/fixtures/                    # Real API response samples
 ### Phase 6: Production Ready (v1.0.0)
 
 #### Tasks
+
 - [ ] Update `README.md`:
-  - Installation instructions
-  - Quick start guide
-  - Command reference
-  - Examples with real tournament slugs
+    - Installation instructions
+    - Quick start guide
+    - Command reference
+    - Examples with real tournament slugs
 - [ ] Update `CLAUDE.md`:
-  - Remove archived code references
-  - Document new architecture
-  - Update code examples
+    - Remove archived code references
+    - Document new architecture
+    - Update code examples
 - [ ] Add comprehensive type hints
 - [ ] Run `mypy --strict` and fix issues
 - [ ] Set up pre-commit hooks:
-  - ruff (linting + formatting)
-  - mypy (type checking)
-  - pytest (quick tests)
+    - ruff (linting + formatting)
+    - mypy (type checking)
+    - pytest (quick tests)
 - [ ] Remove `_archive/` directory
 - [ ] Create git tag `v1.0.0`
 - [ ] (Optional) Publish to PyPI
 
 #### Dependencies
+
 - Phase 5 (tests passing)
 
 #### Acceptance Criteria
+
 - [ ] `mypy lptk --strict` passes
 - [ ] `ruff check lptk` passes
 - [ ] `pre-commit run --all-files` passes
@@ -524,6 +608,7 @@ tests/fixtures/                    # Real API response samples
 - [ ] Package installable via `pip install .`
 
 #### Files to Modify
+
 ```
 README.md
 CLAUDE.md
@@ -532,6 +617,7 @@ pyproject.toml
 ```
 
 #### Files to Delete
+
 ```
 _archive/  (entire directory)
 ```
@@ -543,38 +629,45 @@ _archive/  (entire directory)
 The following features are not part of the initial restructuring but could be added in future versions:
 
 ### Multi-Game Support
+
 - Abstract game-specific logic (player counts, template formats)
 - Add support for other Liquipedia wikis (Dota 2, CS2, LoL)
 - Configuration-based game selection
 
 ### GUI Wrapper
+
 - Web-based interface using FastAPI + htmx
 - Desktop app using textual or PyQt
 - Visual bracket preview
 
 ### Liquipedia Direct Editing
+
 - OAuth authentication with Liquipedia
 - Direct page editing via MediaWiki API
 - Edit preview and diff view
 - Watchlist integration
 
 ### Tournament Templates Library
+
 - Pre-built templates for common tournament formats
 - Template validation and linting
 - Community template sharing
 
 ### Batch Processing
+
 - Process multiple tournaments from a list
 - Scheduled updates for ongoing events
 - Queue system for rate limiting
 
 ### Advanced Features
+
 - Historical data tracking and comparison
 - Tournament statistics generation
 - Team roster change detection
 - Automatic flag updates from player pages
 
 ### Developer Experience
+
 - Plugin system for custom formatters
 - API response caching with TTL
 - Offline mode with cached data
@@ -600,6 +693,7 @@ During migration, the following issues from the archived code should be fixed:
 ## Documentation Convention
 
 Each module and submodule must have its own `README.md` file explaining:
+
 - Purpose and responsibility of the module
 - Public API / exported functions and classes
 - Usage examples
@@ -612,10 +706,10 @@ lptk/
 │   └── README.md          # API clients documentation
 ├── models/
 │   └── README.md          # Data models documentation
+├── wikitext/
+│   └── README.md          # Wikitext parsing and generation documentation
 ├── tools/
 │   └── README.md          # Business logic tools documentation
-├── formatters/
-│   └── README.md          # Wikitext formatters documentation
 ├── cli/
 │   └── README.md          # CLI commands documentation
 └── utils/

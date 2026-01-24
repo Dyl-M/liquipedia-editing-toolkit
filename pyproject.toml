@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "liquipedia-editing-toolkit"
-version = "0.0.1-alpha"
+version = "0.0.0-alpha"
 description = "CLI toolkit for start.gg and Liquipedia integration for esports tournaments"
 readme = "README.md"
 license = "MIT"

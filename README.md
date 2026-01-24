@@ -7,19 +7,23 @@
 
 Toolkit for automating Liquipedia page editing with data from start.gg esports tournaments (Rocket League focus).
 
-> **Note:** This project is being restructured from `src/` to `lptk/` package. Legacy code is archived in `_archive/`.
+> **Status: v0.0.0-alpha** - Project is being restructured from `src/` to `lptk/` package. Legacy code is archived in
+`_archive/`. See [`_docs/ROADMAP.md`](_docs/ROADMAP.md) for the development plan.
 
 ## Features
 
 ### Tournament Page Filler
+
 Generate Liquipedia wikitext from start.gg tournament results:
-- **Cascading Phase Analysis:** Collects teams from most advanced phase (Finals) backwards to earlier phases (Playoffs → Swiss → Pools)
+
+- **Cascading Phase Analysis:** Collects teams from most advanced phase (Finals) backwards to earlier phases (Playoffs →
+  Swiss → Pools)
 - **Ongoing Tournament Support:** Fetch data from live tournaments using phase group fallback
 - **Smart Placement Lock-in:** Includes teams with confirmed placements; uses placeholders for ongoing matches
 - **Pool Group Integration:** Enriches team data with pool group and placement for accurate bracket positioning
 - **Two Format Options:**
-  - Legacy TeamCard format for older pages
-  - Modern TeamParticipants format for newer tournament pages
+    - Legacy TeamCard format for older pages
+    - Modern TeamParticipants format for newer tournament pages
 - Fetch top N teams with placement, player info, and country data
 - Generate formatted output with tabs for different placement ranges
 - Query Liquipedia for canonical player names (handles redirects)
@@ -27,13 +31,17 @@ Generate Liquipedia wikitext from start.gg tournament results:
 - Bracket-aware sorting by pool placement and bracket position
 
 ### Stream Filler
+
 Insert Twitch/YouTube stream links into Liquipedia match brackets:
+
 - Regex-based wikitext manipulation
 - Batch processing for multiple teams
 - Support for both Twitch and YouTube
 
 ### Prize Pool Filler
+
 Automatically fill Liquipedia prize pool sections with tournament results:
+
 - Smart fallback: Uses event standings for completed tournaments, phase results for ongoing ones
 - Bracket-aware sorting: Teams ordered by group (B1, B2, ...) then match identifier (AL, AM, ...)
 - Elimination tracking: Populates "lastvs" (opponent) and "lastvsscore" (match score) fields
@@ -43,23 +51,28 @@ Automatically fill Liquipedia prize pool sections with tournament results:
 ## Setup
 
 ### Requirements
+
 - Python 3.12+
 - Dependencies: `pycountry`, `requests`, `beautifulsoup4`
 
 ### Installation
 
 Using [uv](https://docs.astral.sh/uv/) (recommended):
+
 ```bash
 uv sync
 ```
 
 Or with pip:
+
 ```bash
 pip install -e .
 ```
 
 ### API Token
+
 Create a start.gg API token and save it to:
+
 ```
 _token/start.gg-token.txt
 ```
@@ -73,20 +86,31 @@ liquipedia-editing-toolkit/
 ├── _archive/                         # Legacy code (archived during restructure)
 │   └── src/                          # Original source modules
 │       ├── tournament_page_filler/   # Generate TeamCards/TeamParticipants
-│       │   ├── startgg_tools.py      # start.gg GraphQL API wrapper
-│       │   ├── liquipedia_tools.py   # Liquipedia wikitext generation
-│       │   └── phase_utils.py        # Tournament phase analysis utilities
 │       ├── stream_filler/            # Insert stream links into brackets
-│       │   └── insert_streams.py
 │       └── prize_pool_filler/        # Fill prize pool sections
-│           ├── fill_prize_pool.py    # Main workflow and filling logic
-│           └── get_phase_results.py  # Handle ongoing tournaments
 ├── lptk/                             # New package structure (in development)
+├── _docs/                            # Project documentation
+│   └── ROADMAP.md                    # Development roadmap and architecture
 ├── _data/                            # Tournament JSON data (gitignored)
 ├── _token/                           # API tokens (gitignored)
 ├── pyproject.toml                    # Project configuration
 ├── .python-version                   # Python version (3.12)
 └── README.md
+```
+
+### Target Architecture (v1.0.0)
+
+```
+lptk/
+├── api/                      # API clients (start.gg, Liquipedia)
+├── wikitext/                 # Wikitext parsing and generation
+│   ├── parser.py             # Parse templates from wikitext
+│   ├── builder.py            # Build wikitext strings
+│   └── templates/            # Template implementations (Opponent, Slot, TeamCard, etc.)
+├── tools/                    # Business logic (participants, prizepool, streams)
+├── cli/                      # Typer-based CLI
+├── models/                   # Pydantic data models
+└── utils/                    # Shared utilities
 ```
 
 ## Usage Examples
