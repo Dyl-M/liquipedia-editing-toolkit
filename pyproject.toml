@@ -8,7 +8,7 @@ version = "0.0.1-alpha"
 description = "CLI toolkit for start.gg and Liquipedia integration for esports tournaments"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.12, <3.15"
+requires-python = ">=3.12, <3.13"
 authors = [
     { name = "Dylan \"Dyl-M\" Monfret", email = "music.dyl.music@gmail.com" }
 ]
@@ -24,22 +24,22 @@ classifiers = [
 ]
 
 dependencies = [
-    "beautifulsoup4>=4.12.0",
-    "pycountry>=24.6.1",
-    "pydantic>=2.0.0",
-    "pydantic-settings>=2.0.0",
-    "requests>=2.31.0",
-    "typer>=0.12.0",
+    "beautifulsoup4==4.14.3",
+    "pycountry==24.6.1",
+    "pydantic==2.12.5",
+    "pydantic-settings==2.12.0",
+    "requests==2.32.5",
+    "typer==0.21.1",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "mypy>=1.14.0",
-    "pytest>=8.0.0",
-    "pytest-cov>=6.0.0",
-    "ruff>=0.9.0",
-    "types-beautifulsoup4>=4.12.0",
-    "types-requests>=2.32.0",
+    "mypy==1.14.0",
+    "pytest==8.0.0",
+    "pytest-cov==6.0.0",
+    "ruff==0.9.0",
+    "types-beautifulsoup4==4.12.0.0",
+    "types-requests==2.32.4.20260107",
 ]
 
 [project.scripts]
