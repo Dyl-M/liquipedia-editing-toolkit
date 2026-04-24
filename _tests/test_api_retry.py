@@ -19,6 +19,7 @@ class TestRetryWithBackoff:
 
         @retry_with_backoff(max_retries=3)
         def successful_func() -> str:
+            """Return successfully on the first attempt without raising."""
             nonlocal call_count
             call_count += 1
             return "success"
@@ -34,6 +35,7 @@ class TestRetryWithBackoff:
 
         @retry_with_backoff(max_retries=2, initial_delay=1.0, backoff_factor=2.0)
         def failing_func() -> str:
+            """Raise RequestException on the first two calls, then succeed."""
             nonlocal call_count
             call_count += 1
             if call_count < 3:
@@ -57,6 +59,7 @@ class TestRetryWithBackoff:
 
         @retry_with_backoff(max_retries=2)
         def always_failing_func() -> str:
+            """Always raise a retryable RequestException."""
             nonlocal call_count
             call_count += 1
             raise requests.RequestException("Always fails")
@@ -74,6 +77,7 @@ class TestRetryWithBackoff:
 
         @retry_with_backoff(max_retries=2)
         def rate_limited_func() -> requests.Response:
+            """Return a 429 response twice, then a 200 response."""
             nonlocal call_count
             call_count += 1
             response = MagicMock(spec=requests.Response)
@@ -97,6 +101,7 @@ class TestRetryWithBackoff:
 
         @retry_with_backoff(max_retries=1)
         def server_error_func() -> requests.Response:
+            """Return the parametrised 5xx status on the first call, then 200."""
             nonlocal call_count
             call_count += 1
             response = MagicMock(spec=requests.Response)
@@ -112,6 +117,7 @@ class TestRetryWithBackoff:
 
         @retry_with_backoff(max_retries=3)
         def value_error_func() -> str:
+            """Raise a non-retryable ValueError."""
             raise ValueError("Not retryable")
 
         with pytest.raises(ValueError):
@@ -127,6 +133,7 @@ class TestRetryWithBackoff:
             retryable_exceptions=(ValueError,),
         )
         def custom_retryable_func() -> str:
+            """Raise the custom-retryable ValueError twice, then succeed."""
             nonlocal call_count
             call_count += 1
             if call_count < 3:
@@ -144,6 +151,7 @@ class TestRetryWithBackoff:
 
         @retry_with_backoff(max_retries=3)
         def bad_request_func() -> requests.Response:
+            """Return a 400 response that should not trigger retries."""
             nonlocal call_count
             call_count += 1
             response = MagicMock(spec=requests.Response)
@@ -165,6 +173,7 @@ class TestRetryWithBackoff:
             backoff_factor=3.0,
         )
         def failing_func() -> str:
+            """Raise RequestException on the first three calls, then succeed."""
             nonlocal call_count
             call_count += 1
             if call_count <= 3:
@@ -186,6 +195,7 @@ class TestRetryWithBackoff:
 
         @retry_with_backoff(max_retries=2)
         def always_rate_limited() -> requests.Response:
+            """Always return a 429 response so retries exhaust."""
             response = MagicMock(spec=requests.Response)
             response.status_code = 429
             response.url = "https://api.example.com"
@@ -203,6 +213,7 @@ class TestRetryWithBackoff:
 
         @retry_with_backoff(max_retries=-1)
         def never_runs() -> str:
+            """Return a sentinel string the retry loop should never reach."""
             return "never"
 
         with pytest.raises(APIError) as exc_info:

@@ -109,18 +109,21 @@ class TestLocalKeysSchema:
 
     @staticmethod
     def test_both_fields_populated() -> None:
+        """Test that both startgg and lpdb fields are stored when provided."""
         keys = LocalKeys(startgg="abc", lpdb="xyz")
         assert keys.startgg == "abc"
         assert keys.lpdb == "xyz"
 
     @staticmethod
     def test_lpdb_is_optional() -> None:
+        """Test that the lpdb field defaults to None when omitted."""
         keys = LocalKeys(startgg="abc")
         assert keys.startgg == "abc"
         assert keys.lpdb is None
 
     @staticmethod
     def test_missing_startgg_raises() -> None:
+        """Test that omitting the required startgg field raises ValidationError."""
         from pydantic import ValidationError
 
         with pytest.raises(ValidationError):
@@ -128,6 +131,7 @@ class TestLocalKeysSchema:
 
     @staticmethod
     def test_empty_startgg_raises() -> None:
+        """Test that an empty startgg string is rejected by validation."""
         from pydantic import ValidationError
 
         with pytest.raises(ValidationError):
