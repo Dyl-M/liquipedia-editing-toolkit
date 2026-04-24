@@ -56,6 +56,15 @@ def retry_with_backoff(
     """
 
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
+        """Wrap ``func`` with retry-and-backoff behaviour.
+
+        Args:
+            func: The target callable to be wrapped.
+
+        Returns:
+            A wrapper with the same signature as ``func`` that applies the retry policy.
+        """
+
         @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             delay = initial_delay
@@ -65,29 +74,31 @@ def retry_with_backoff(
                     result = func(*args, **kwargs)
 
                     # Check if result is a Response with a retryable status code
-                    if isinstance(result, requests.Response):
-                        if result.status_code in retryable_status_codes:
-                            if attempt < max_retries:
-                                logger.warning(
-                                    "Retryable status %d on attempt %d/%d, "
-                                    "retrying in %.1fs...",
-                                    result.status_code,
-                                    attempt + 1,
-                                    max_retries + 1,
-                                    delay,
-                                )
-                                time.sleep(delay)
-                                delay *= backoff_factor
-                                continue
-                            # Max retries exhausted
-                            raise APIError(
-                                f"Max retries ({max_retries}) exhausted",
-                                status_code=result.status_code,
-                                details={
-                                    "url": result.url,
-                                    "attempts": attempt + 1,
-                                },
+                    if (
+                        isinstance(result, requests.Response)
+                        and result.status_code in retryable_status_codes
+                    ):
+                        if attempt < max_retries:
+                            logger.warning(
+                                "Retryable status %d on attempt %d/%d, "
+                                "retrying in %.1fs...",
+                                result.status_code,
+                                attempt + 1,
+                                max_retries + 1,
+                                delay,
                             )
+                            time.sleep(delay)
+                            delay *= backoff_factor
+                            continue
+                        # Max retries exhausted
+                        raise APIError(
+                            f"Max retries ({max_retries}) exhausted",
+                            status_code=result.status_code,
+                            details={
+                                "url": result.url,
+                                "attempts": attempt + 1,
+                            },
+                        )
 
                     return result
 

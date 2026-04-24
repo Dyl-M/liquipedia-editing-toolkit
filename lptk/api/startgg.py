@@ -488,7 +488,6 @@ class StartGGClient:
 
         return all_seeds
 
-    # noinspection PyUnnecessaryCast
     def get_set_details(self, set_id: int) -> SetDetails | None:
         """Get details of a specific match/set.
 
@@ -539,40 +538,20 @@ class StartGGClient:
         if not winner_id:
             return None
 
-        slot1, slot2 = slots[0], slots[1]
-
-        entrant1 = slot1.get("entrant") or {}
-        entrant2 = slot2.get("entrant") or {}
-
-        id1 = entrant1.get("id")
-        id2 = entrant2.get("id")
-        name1 = entrant1.get("name")
-        name2 = entrant2.get("name")
-
-        if not all([id1, id2, name1, name2]):
+        entrants = self._extract_match_entrants(slots)
+        if entrants is None:
             return None
+        id1, id2, name1, name2 = entrants
 
-        # Cast to str since we verified they're truthy above
-        name1_str = cast(str, name1)
-        name2_str = cast(str, name2)
+        score1 = self._extract_slot_score(slots[0])
+        score2 = self._extract_slot_score(slots[1])
 
-        # Extract scores
-        score1 = (
-                ((slot1.get("standing") or {}).get("stats") or {}).get("score") or {}
-        ).get("value")
-        score2 = (
-                ((slot2.get("standing") or {}).get("stats") or {}).get("score") or {}
-        ).get("value")
-
-        # Determine winner and loser
-        if id1 == winner_id:
-            winner_name, loser_name = name1_str, name2_str
-            winner_score, loser_score = score1, score2
-        elif id2 == winner_id:
-            winner_name, loser_name = name2_str, name1_str
-            winner_score, loser_score = score2, score1
-        else:
+        assignment = self._assign_winner_and_loser(
+            winner_id, id1, name1, score1, id2, name2, score2,
+        )
+        if assignment is None:
             return None
+        winner_name, loser_name, winner_score, loser_score = assignment
 
         return SetDetails(
             set_id=set_id,
@@ -583,6 +562,83 @@ class StartGGClient:
             winner_score=winner_score,
             loser_score=loser_score,
         )
+
+    @staticmethod
+    def _extract_match_entrants(
+            slots: list[dict[str, Any]],
+    ) -> tuple[int, int, str, str] | None:
+        """Pull entrant IDs and names from the two match slots.
+
+        Args:
+            slots: Raw ``slots`` list from the start.gg ``set`` payload.
+
+        Returns:
+            Tuple of ``(id1, id2, name1, name2)`` or ``None`` when any field is falsy.
+        """
+        entrant1 = slots[0].get("entrant") or {}
+        entrant2 = slots[1].get("entrant") or {}
+
+        id1 = entrant1.get("id")
+        id2 = entrant2.get("id")
+        name1 = entrant1.get("name")
+        name2 = entrant2.get("name")
+
+        if not all([id1, id2, name1, name2]):
+            return None
+
+        return (
+            cast(int, id1),
+            cast(int, id2),
+            cast(str, name1),
+            cast(str, name2),
+        )
+
+    @staticmethod
+    def _extract_slot_score(slot: dict[str, Any]) -> int | None:
+        """Extract a slot's game score from the nested standing payload.
+
+        Args:
+            slot: A single entry from the ``slots`` list of a start.gg set.
+
+        Returns:
+            The integer game score, or ``None`` when no score has been recorded.
+        """
+        standing = slot.get("standing") or {}
+        stats = standing.get("stats") or {}
+        score = stats.get("score") or {}
+        value = score.get("value")
+        return cast("int | None", value)
+
+    @staticmethod
+    def _assign_winner_and_loser(
+            winner_id: int,
+            id1: int,
+            name1: str,
+            score1: int | None,
+            id2: int,
+            name2: str,
+            score2: int | None,
+    ) -> tuple[str, str, int | None, int | None] | None:
+        """Map ``winner_id`` onto the slot data to pick winner and loser.
+
+        Args:
+            winner_id: Entrant ID reported by start.gg as the winner.
+            id1: Entrant ID of slot 1.
+            name1: Entrant name of slot 1.
+            score1: Score of slot 1.
+            id2: Entrant ID of slot 2.
+            name2: Entrant name of slot 2.
+            score2: Score of slot 2.
+
+        Returns:
+            Tuple of ``(winner_name, loser_name, winner_score, loser_score)``,
+            or ``None`` when ``winner_id`` matches neither slot.
+        """
+        if id1 == winner_id:
+            return name1, name2, score1, score2
+        if id2 == winner_id:
+            return name2, name1, score2, score1
+        return None
 
     def get_entrant_last_elimination_set_id(
             self, event_id: int, entrant_id: int
