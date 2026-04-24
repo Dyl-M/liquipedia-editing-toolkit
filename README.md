@@ -10,10 +10,10 @@
 Toolkit for automating Liquipedia page editing with data from start.gg esports tournaments (Rocket League focus).
 
 > **Status: v0.0.2-alpha** - API layer complete. The `lptk/` package now includes `StartGGClient` (start.gg GraphQL),
-> Pydantic data models (`Team`, `Player`, `Phase`, `SetDetails`), retry logic with exponential backoff, and a test
-> suite with 128 tests (100% coverage). Liquipedia DB API access is delegated to the
-> [`liquipydia`](https://github.com/Dyl-M/liquipydia) library. Legacy code remains in `_archive/`.
-> See [`_docs/ROADMAP.md`](_docs/ROADMAP.md) for the development plan and [`CHANGELOG.md`](CHANGELOG.md) for version history.
+> Pydantic data models (`Team`, `Player`, `Phase`, `SetDetails`), retry logic with exponential backoff, and a test suite
+> with 128 tests (100% coverage). Liquipedia DB API access is delegated to the [
+`liquipydia`](https://github.com/Dyl-M/liquipydia) library. Legacy code remains in `_archive/`. See [
+`_docs/ROADMAP.md`](_docs/ROADMAP.md) for the development plan and [`CHANGELOG.md`](CHANGELOG.md) for version history.
 
 ## Features
 
@@ -120,7 +120,7 @@ Credentials live under the `.token/` folder (gitignored, created manually) as tw
 ```json
 {
   "startgg": "<start.gg api token>",
-  "lpdb":    "<liquipedia db api key>"
+  "lpdb": "<liquipedia db api key>"
 }
 ```
 
@@ -146,35 +146,25 @@ Override the keys file path via the `LPTK_LOCAL_KEYS_PATH` environment variable 
 ## Project Structure
 
 ```
-liquipedia-editing-toolkit/
-├── lptk/                             # Main package (v0.0.2-alpha)
-│   ├── __init__.py                   # Package exports, version
-│   ├── config.py                     # Settings management (pydantic-settings)
-│   ├── exceptions.py                 # Custom exception hierarchy
-│   ├── py.typed                      # PEP 561 marker
-│   ├── api/                          # API clients
-│   │   ├── startgg.py                # StartGGClient - start.gg GraphQL
-│   │   └── _retry.py                 # Retry decorator with exponential backoff
-│   └── models/                       # Pydantic data models
-│       ├── team.py                   # Player, Team models
-│       └── tournament.py             # Phase, PhaseGroup, SetDetails models
-├── _tests/                           # Test suite (128 tests, 100% coverage)
-├── _archive/                         # Legacy code (archived during restructure)
-├── _docs/                            # Project documentation
-├── _data/                            # Tournament JSON data (gitignored)
-├── .token/                           # API keys as JSON (gitignored)
-├── _drafts/                          # Work-in-progress files (gitignored)
-├── pyproject.toml                    # Project configuration
-├── .python-version                   # Python version (3.12)
-├── CHANGELOG.md                      # Version history
-└── README.md
+── lptk/                             # Main package (v0.0.2-alpha)
+    ├── __init__.py                   # Package exports, version
+    ├── config.py                     # Settings management (pydantic-settings)
+    ├── exceptions.py                 # Custom exception hierarchy
+    ├── py.typed                      # PEP 561 marker
+    ├── api/                          # API clients
+    │   ├── startgg.py                # StartGGClient - start.gg GraphQL
+    │   └── _retry.py                 # Retry decorator with exponential backoff
+    └── models/                       # Pydantic data models
+        ├── team.py                   # Player, Team models
+        └── tournament.py             # Phase, PhaseGroup, SetDetails models
+
 ```
 
 ### Target Architecture (v1.0.0)
 
 ```
 lptk/
-├── api/                      # start.gg client (Liquipedia via liquipydia library)
+├── api/                      # start.gg client (Liquipedia via "liquipydia" lib.)
 ├── wikitext/                 # Wikitext parsing and generation
 │   ├── parser.py             # Parse templates from wikitext
 │   ├── builder.py            # Build wikitext strings
