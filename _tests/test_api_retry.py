@@ -12,7 +12,8 @@ from lptk.exceptions import APIError
 class TestRetryWithBackoff:
     """Tests for the retry_with_backoff decorator."""
 
-    def test_successful_call_no_retry(self) -> None:
+    @staticmethod
+    def test_successful_call_no_retry() -> None:
         """Test that successful calls don't trigger retries."""
         call_count = 0
 
@@ -105,7 +106,8 @@ class TestRetryWithBackoff:
         result = server_error_func()
         assert result.status_code == 200, f"Failed for status {status_code}"
 
-    def test_no_retry_on_non_retryable_exception(self) -> None:
+    @staticmethod
+    def test_no_retry_on_non_retryable_exception() -> None:
         """Test that non-retryable exceptions are raised immediately."""
 
         @retry_with_backoff(max_retries=3)
@@ -135,7 +137,8 @@ class TestRetryWithBackoff:
         assert result == "success"
         assert call_count == 3
 
-    def test_no_retry_on_non_retryable_status_code(self) -> None:
+    @staticmethod
+    def test_no_retry_on_non_retryable_status_code() -> None:
         """Test that non-retryable status codes don't trigger retries."""
         call_count = 0
 
@@ -194,7 +197,8 @@ class TestRetryWithBackoff:
         assert exc_info.value.status_code == 429
         assert "Max retries (2) exhausted" in str(exc_info.value)
 
-    def test_negative_max_retries_raises_api_error(self) -> None:
+    @staticmethod
+    def test_negative_max_retries_raises_api_error() -> None:
         """Degenerate max_retries < 0 skips the loop entirely."""
 
         @retry_with_backoff(max_retries=-1)

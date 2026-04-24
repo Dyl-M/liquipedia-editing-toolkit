@@ -9,14 +9,16 @@ from lptk.models import Phase, PhaseGroup, Player, SetDetails, SetSlot, Team
 class TestPlayer:
     """Tests for the Player model."""
 
-    def test_player_defaults(self) -> None:
+    @staticmethod
+    def test_player_defaults() -> None:
         """Test Player with default values."""
         player = Player()
         assert player.player_id is None
         assert player.player_tag == ""
         assert player.player_country is None
 
-    def test_player_with_values(self) -> None:
+    @staticmethod
+    def test_player_with_values() -> None:
         """Test Player with all values set."""
         player = Player(
             player_id=12345,
@@ -27,12 +29,14 @@ class TestPlayer:
         assert player.player_tag == "TestPlayer"
         assert player.player_country == "us"
 
-    def test_player_str_with_country(self) -> None:
+    @staticmethod
+    def test_player_str_with_country() -> None:
         """Test Player string representation with country."""
         player = Player(player_tag="TestPlayer", player_country="fr")
         assert str(player) == "TestPlayer (fr)"
 
-    def test_player_str_without_country(self) -> None:
+    @staticmethod
+    def test_player_str_without_country() -> None:
         """Test Player string representation without country."""
         player = Player(player_tag="TestPlayer")
         assert str(player) == "TestPlayer"
@@ -41,7 +45,8 @@ class TestPlayer:
 class TestTeam:
     """Tests for the Team model."""
 
-    def test_team_minimal(self) -> None:
+    @staticmethod
+    def test_team_minimal() -> None:
         """Test Team with minimal required values."""
         team = Team(placement=1)
         assert team.placement == 1
@@ -49,7 +54,8 @@ class TestTeam:
         assert team.members == []
         assert team.is_placeholder is True
 
-    def test_team_with_roster(self) -> None:
+    @staticmethod
+    def test_team_with_roster() -> None:
         """Test Team with full roster."""
         players = [
             Player(player_id=1, player_tag="P1", player_country="us"),
@@ -68,17 +74,20 @@ class TestTeam:
         assert team.entrant_id == 999
         assert team.is_placeholder is False
 
-    def test_team_str(self) -> None:
+    @staticmethod
+    def test_team_str() -> None:
         """Test Team string representation."""
         team = Team(placement=5, team_name="Winners")
         assert str(team) == "#5 Winners"
 
-    def test_team_str_placeholder(self) -> None:
+    @staticmethod
+    def test_team_str_placeholder() -> None:
         """Test Team string representation for placeholder."""
         team = Team(placement=10)
         assert str(team) == "#10 TBD"
 
-    def test_team_placement_validation(self) -> None:
+    @staticmethod
+    def test_team_placement_validation() -> None:
         """Test that placement must be >= 1."""
         with pytest.raises(ValidationError):
             Team(placement=0)
@@ -86,7 +95,8 @@ class TestTeam:
         with pytest.raises(ValidationError):
             Team(placement=-1)
 
-    def test_team_bracket_fields(self) -> None:
+    @staticmethod
+    def test_team_bracket_fields() -> None:
         """Test Team bracket-related fields."""
         team = Team(
             placement=8,
@@ -99,7 +109,8 @@ class TestTeam:
         assert team.bracket_identifier == "AL"
         assert team.elimination_set_id == 12345
 
-    def test_team_pool_fields(self) -> None:
+    @staticmethod
+    def test_team_pool_fields() -> None:
         """Test Team pool-related fields."""
         team = Team(
             placement=16,
@@ -116,7 +127,8 @@ class TestTeam:
 class TestPhaseGroup:
     """Tests for the PhaseGroup model."""
 
-    def test_phase_group_defaults(self) -> None:
+    @staticmethod
+    def test_phase_group_defaults() -> None:
         """Test PhaseGroup with default values."""
         group = PhaseGroup(id=123)
         assert group.id == 123
@@ -124,7 +136,8 @@ class TestPhaseGroup:
         assert group.state == 1
         assert group.num_seeds == 0
 
-    def test_phase_group_completed(self) -> None:
+    @staticmethod
+    def test_phase_group_completed() -> None:
         """Test PhaseGroup completion status."""
         group = PhaseGroup(id=1, state=3)
         assert group.is_completed is True
@@ -133,7 +146,8 @@ class TestPhaseGroup:
         group_str = PhaseGroup(id=1, state="COMPLETED")
         assert group_str.is_completed is True
 
-    def test_phase_group_active(self) -> None:
+    @staticmethod
+    def test_phase_group_active() -> None:
         """Test PhaseGroup active status."""
         group = PhaseGroup(id=1, state=2)
         assert group.is_active is True
@@ -146,7 +160,8 @@ class TestPhaseGroup:
 class TestPhase:
     """Tests for the Phase model."""
 
-    def test_phase_minimal(self) -> None:
+    @staticmethod
+    def test_phase_minimal() -> None:
         """Test Phase with minimal values."""
         phase = Phase(id=1, name="Day 1")
         assert phase.id == 1
@@ -155,7 +170,8 @@ class TestPhase:
         assert phase.num_seeds == 0
         assert phase.groups == []
 
-    def test_phase_with_groups(self) -> None:
+    @staticmethod
+    def test_phase_with_groups() -> None:
         """Test Phase with phase groups."""
         groups = [
             PhaseGroup(id=1, identifier="B1", state=3, num_seeds=16),
@@ -171,7 +187,8 @@ class TestPhase:
         assert len(phase.groups) == 2
         assert phase.groups[0].identifier == "B1"
 
-    def test_phase_status(self) -> None:
+    @staticmethod
+    def test_phase_status() -> None:
         """Test Phase status properties."""
         created = Phase(id=1, name="Created", state=1)
         assert created.is_completed is False
@@ -189,14 +206,16 @@ class TestPhase:
 class TestSetSlot:
     """Tests for the SetSlot model."""
 
-    def test_set_slot_defaults(self) -> None:
+    @staticmethod
+    def test_set_slot_defaults() -> None:
         """Test SetSlot with default values."""
         slot = SetSlot()
         assert slot.entrant_id is None
         assert slot.entrant_name is None
         assert slot.score is None
 
-    def test_set_slot_with_values(self) -> None:
+    @staticmethod
+    def test_set_slot_with_values() -> None:
         """Test SetSlot with values."""
         slot = SetSlot(
             entrant_id=123,
@@ -211,7 +230,8 @@ class TestSetSlot:
 class TestSetDetails:
     """Tests for the SetDetails model."""
 
-    def test_set_details_minimal(self) -> None:
+    @staticmethod
+    def test_set_details_minimal() -> None:
         """Test SetDetails with minimal values."""
         details = SetDetails(set_id=12345)
         assert details.set_id == 12345
@@ -219,7 +239,8 @@ class TestSetDetails:
         assert details.winner_name == ""
         assert details.loser_name == ""
 
-    def test_set_details_full(self) -> None:
+    @staticmethod
+    def test_set_details_full() -> None:
         """Test SetDetails with all values."""
         details = SetDetails(
             set_id=12345,
@@ -238,7 +259,8 @@ class TestSetDetails:
         assert details.winner_score == 3
         assert details.loser_score == 1
 
-    def test_bracket_group_extraction(self) -> None:
+    @staticmethod
+    def test_bracket_group_extraction() -> None:
         """Test extracting bracket group from identifier."""
         # With group prefix
         details = SetDetails(set_id=1, identifier="B1 AL")
@@ -250,7 +272,8 @@ class TestSetDetails:
         assert details_simple.bracket_group is None
         assert details_simple.match_id == "AM"
 
-    def test_format_score_normal(self) -> None:
+    @staticmethod
+    def test_format_score_normal() -> None:
         """Test normal score formatting."""
         details = SetDetails(
             set_id=1,
@@ -259,7 +282,8 @@ class TestSetDetails:
         )
         assert details.format_score() == "3-2"
 
-    def test_format_score_forfeit_loser(self) -> None:
+    @staticmethod
+    def test_format_score_forfeit_loser() -> None:
         """Test forfeit score formatting (loser forfeit)."""
         details = SetDetails(
             set_id=1,
@@ -268,7 +292,8 @@ class TestSetDetails:
         )
         assert details.format_score() == "W-FF"
 
-    def test_format_score_forfeit_winner(self) -> None:
+    @staticmethod
+    def test_format_score_forfeit_winner() -> None:
         """Test forfeit score formatting (winner forfeit notation)."""
         details = SetDetails(
             set_id=1,
@@ -277,7 +302,8 @@ class TestSetDetails:
         )
         assert details.format_score() == "FF-W"
 
-    def test_format_score_empty(self) -> None:
+    @staticmethod
+    def test_format_score_empty() -> None:
         """Test empty score formatting."""
         details = SetDetails(set_id=1)
         assert details.format_score() == ""
