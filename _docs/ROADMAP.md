@@ -42,8 +42,8 @@ _archive/src/
 ```
 lptk/
 ├── api/                      # Clean API abstraction layer
-│   ├── startgg.py            # start.gg GraphQL client
-│   └── liquipedia.py         # Liquipedia API client (reading)
+│   └── startgg.py            # start.gg GraphQL client
+│   # Liquipedia DB access via external `liquipydia` library (v0.1.0+)
 ├── wikitext/                 # Wikitext parsing and generation
 │   ├── parser.py             # Parse templates from wikitext
 │   ├── builder.py            # Build wikitext strings
@@ -73,8 +73,8 @@ liquipedia-editing-toolkit/
 │   │
 │   ├── api/
 │   │   ├── __init__.py
-│   │   ├── startgg.py        # StartGGClient class
-│   │   └── liquipedia.py     # LiquipediaClient class
+│   │   └── startgg.py        # StartGGClient class
+│   │   # Liquipedia DB via external `liquipydia` package
 │   │
 │   ├── models/
 │   │   ├── __init__.py
@@ -130,7 +130,7 @@ liquipedia-editing-toolkit/
 | Module                  | Responsibility                                                            |
 |-------------------------|---------------------------------------------------------------------------|
 | `api/startgg.py`        | All start.gg GraphQL queries, authentication, rate limiting               |
-| `api/liquipedia.py`     | Liquipedia API queries, redirect resolution                               |
+| `liquipydia` (external) | Liquipedia DB API v3 queries (players, teams, tournaments, etc.)          |
 | `models/`               | Pydantic models for type safety and validation                            |
 | `wikitext/parser.py`    | Parse existing wikitext, extract template parameters                      |
 | `wikitext/builder.py`   | Build wikitext strings from models                                        |
@@ -147,7 +147,7 @@ liquipedia-editing-toolkit/
 cli/main.py
     │
     ├── tools/participants.py ──┬── api/startgg.py
-    │                           ├── api/liquipedia.py
+    │                           ├── liquipydia (external)
     │                           └── wikitext/templates/teamcard.py
     │                           └── wikitext/templates/teamparticipants.py
     │
@@ -178,7 +178,7 @@ cli/main.py
 
 ---
 
-### v0.0.1-alpha - Foundation (Current)
+### v0.0.1-alpha - Foundation (Complete)
 
 **Goal**: Establish package structure and core infrastructure
 
@@ -188,31 +188,34 @@ cli/main.py
 - [x] Set up logging configuration
 - [x] Update `pyproject.toml` with dependencies and entry points
 - [x] Set up `_tests/` structure with pytest and coverage
-- [x] Write tests for config and exceptions (100% coverage achieved)
+- [x] Write tests for config and exceptions (100% coverage achieved, 44 tests)
 - [x] Create `lptk/README.md` (package overview)
 - [x] Create `_tests/README.md` (test suite documentation)
+- [x] Create `CHANGELOG.md` following Keep a Changelog format
 
 **Deliverables**: Importable package with configuration system and test infrastructure
 
 ---
 
-### v0.0.2-alpha - API Layer
+### v0.0.2-alpha - API Layer (Complete)
 
 **Goal**: Clean, reusable API clients
 
-- [ ] Implement `StartGGClient` class with all GraphQL queries
-- [ ] Implement `LiquipediaClient` class with API methods
-- [ ] Create Pydantic models for API responses
-- [ ] Add rate limiting and retry logic
-- [ ] Write unit tests with mocked responses (80%+ coverage for new code)
-- [ ] Create `lptk/api/README.md` (API clients documentation)
-- [ ] Create `lptk/models/README.md` (data models documentation)
+- [x] Implement `StartGGClient` class with all GraphQL queries
+- [x] ~~Implement `LiquipediaClient` class with API methods~~ Delegated to the external
+      [`liquipydia`](https://github.com/Dyl-M/liquipydia) library (v0.1.0+) — pinned as a runtime dependency in
+      `pyproject.toml`
+- [x] Create Pydantic models for start.gg API responses
+- [x] Add rate limiting and retry logic
+- [x] Write unit tests with mocked responses (128 tests total, 100% coverage)
+- [x] Create `lptk/api/README.md` (API clients documentation)
+- [x] Create `lptk/models/README.md` (data models documentation)
 
-**Deliverables**: Fully functional API layer maintaining 80%+ overall coverage
+**Deliverables**: Fully functional start.gg client; Liquipedia DB access provided by `liquipydia`
 
 ---
 
-### v0.1.0 - Tools Migration
+### v0.1.0 - Tools Migration (Next)
 
 **Goal**: Port business logic from archived code
 
@@ -308,6 +311,7 @@ cli/main.py
 - [x] Write tests for `config.py` and `exceptions.py`
 - [x] Create `lptk/README.md` with package overview
 - [x] Create `_tests/README.md` with test suite documentation
+- [x] Create `CHANGELOG.md` following Keep a Changelog format
 
 #### Dependencies
 
@@ -335,41 +339,38 @@ _tests/conftest.py
 _tests/test_config.py
 _tests/test_exceptions.py
 _tests/README.md
+CHANGELOG.md
 ```
 
 ---
 
-### Phase 2: API Layer (v0.0.2-alpha)
+### Phase 2: API Layer (v0.0.2-alpha) - Complete
 
 #### Tasks
 
-- [ ] Create `api/__init__.py` with client exports
-- [ ] Implement `StartGGClient`:
+- [x] Create `api/__init__.py` with client exports
+- [x] Implement `StartGGClient`:
   ```python
   class StartGGClient:
-      def __init__(self, token: str | None = None)
+      def __init__(self, token: str | None = None, session: Session | None = None)
       def get_event_id(self, slug: str) -> tuple[int, str]
       def get_event_standings(self, event_id: int, top_n: int) -> list[Team]
-      def get_phase_groups(self, event_id: int) -> list[PhaseGroup]
+      def get_tournament_phases(self, event_id: int) -> list[Phase]
       def get_phase_group_standings(self, pg_id: int) -> list[Team]
-      def get_set_details(self, set_id: int) -> SetDetails
-      def get_entrant_sets(self, event_id: int, entrant_id: int) -> list[Set]
+      def get_phase_group_seeds(self, pg_id: int) -> list[Team]
+      def get_set_details(self, set_id: int) -> SetDetails | None
+      def get_entrant_last_elimination_set_id(self, event_id: int, entrant_id: int) -> int | None
+      def has_incomplete_sets(self, event_id: int, entrant_id: int) -> bool
   ```
-- [ ] Implement `LiquipediaClient`:
-  ```python
-  class LiquipediaClient:
-      def __init__(self, user_agent: str)
-      def get_redirect_target(self, title: str) -> str
-      def query_page(self, title: str) -> dict
-  ```
-- [ ] Create Pydantic models in `models/`:
+- [x] Liquipedia DB: delegated to `liquipydia` library (import `liquipydia.LiquipediaClient` directly)
+- [x] Create Pydantic models in `models/`:
     - `Team`, `Player` in `team.py`
-    - `Tournament`, `Phase`, `PhaseGroup`, `Set`, `SetDetails` in `tournament.py`
-- [ ] Add rate limiting decorator/mixin
-- [ ] Implement retry logic with exponential backoff
-- [ ] Write unit tests with mocked API responses
-- [ ] Create `lptk/api/README.md` with API clients documentation
-- [ ] Create `lptk/models/README.md` with data models documentation
+    - `Phase`, `PhaseGroup`, `SetSlot`, `SetDetails` in `tournament.py`
+- [x] Add rate limiting via `_rate_limit()` method
+- [x] Implement retry logic with exponential backoff (`_retry.py`)
+- [x] Write unit tests with mocked API responses
+- [x] Create `lptk/api/README.md` with API clients documentation
+- [x] Create `lptk/models/README.md` with data models documentation
 
 #### Dependencies
 
@@ -377,28 +378,29 @@ _tests/README.md
 
 #### Acceptance Criteria
 
-- [ ] `StartGGClient().get_event_id("tournament/slug/event/main")` returns valid tuple
-- [ ] All API methods return typed Pydantic models
-- [ ] Rate limiting prevents 429 errors
-- [ ] Invalid token raises `ConfigurationError`
-- [ ] API errors raise `APIError` with details
-- [ ] `pytest --cov=lptk` shows 80%+ coverage
-- [ ] All tests pass
+- [x] `StartGGClient().get_event_id("tournament/slug/event/main")` returns valid tuple
+- [x] All API methods return typed Pydantic models
+- [x] Rate limiting prevents 429 errors
+- [x] Invalid token raises `ConfigurationError`
+- [x] start.gg API errors raise `StartGGAPIError` with details
+- [x] Liquipedia access covered by `liquipydia` library (its own exception hierarchy)
+- [x] `pytest --cov=lptk` shows 100% coverage
+- [x] All 128 tests pass
 
-#### Files to Create
+#### Files Created
 
 ```
 lptk/api/__init__.py
 lptk/api/startgg.py
-lptk/api/liquipedia.py
+lptk/api/_retry.py
 lptk/api/README.md
 lptk/models/__init__.py
 lptk/models/team.py
 lptk/models/tournament.py
 lptk/models/README.md
-tests/test_api_startgg.py
-tests/test_api_liquipedia.py
-tests/test_models.py
+_tests/test_api_startgg.py
+_tests/test_api_retry.py
+_tests/test_models.py
 ```
 
 ---
@@ -565,8 +567,8 @@ pyproject.toml  # Add [project.scripts] entry point
 - [ ] Add edge case tests for all modules
 - [ ] Add error path and exception tests
 - [ ] Add integration tests with real API calls:
-    - `test_integration_startgg.py` - real API (marked slow)
-    - `test_integration_liquipedia.py` - real API (marked slow)
+    - `test_integration_startgg.py` - real start.gg API (marked slow)
+    - Liquipedia integration tests live in the `liquipydia` library itself
 - [ ] Create fixtures with real API response samples
 - [ ] Add GitHub Actions workflow for CI
 - [ ] Configure coverage thresholds in CI (fail if < 80%)
@@ -589,7 +591,6 @@ pyproject.toml  # Add [project.scripts] entry point
 ```
 tests/integration/__init__.py
 tests/integration/test_integration_startgg.py
-tests/integration/test_integration_liquipedia.py
 tests/fixtures/                    # Real API response samples
 .github/workflows/test.yml
 ```
@@ -705,7 +706,7 @@ The following features are not part of the initial restructuring but could be ad
 
 During migration, the following issues from the archived code should be fixed:
 
-1. **Hardcoded paths**: Replace `../../_token/` with config-based resolution
+1. **Hardcoded paths**: Legacy archive code references `../../_token/`; the runtime code now uses `.token/local_keys.json` via `LPTK_LOCAL_KEYS_PATH`. Any revived archive module must migrate to the new scheme.
 2. **Duplicated API calls**: Centralize in `StartGGClient`
 3. **Mixed concerns**: Separate API calls from wikitext formatting
 4. **No error recovery**: Add retry logic for transient failures
@@ -741,6 +742,37 @@ lptk/
 └── utils/
     └── README.md          # Utility functions documentation
 ```
+
+---
+
+## Coding Conventions
+
+### Import Organization
+
+All Python files must organize imports with section comments:
+
+```python
+"""Module docstring."""
+
+# Standard library
+import logging
+import time
+from pathlib import Path
+
+# Third-party
+import pydantic
+import requests
+
+# Local
+from lptk.config import get_settings
+from lptk.exceptions import APIError
+```
+
+**Rules:**
+- Section comments are required: `# Standard library`, `# Third-party`, `# Local`
+- Each section is separated by a blank line
+- Imports within each section are sorted alphabetically
+- Omit empty sections (e.g., no `# Third-party` if no third-party imports)
 
 ---
 
