@@ -7,7 +7,6 @@ import pytest
 from lptk.exceptions import (
     APIError,
     ConfigurationError,
-    LiquipediaAPIError,
     LPTKError,
     StartGGAPIError,
     WikitextParseError,
@@ -133,28 +132,6 @@ class TestStartGGAPIError:
             raise StartGGAPIError("start.gg error")
 
 
-class TestLiquipediaAPIError:
-    """Tests for LiquipediaAPIError."""
-
-    @staticmethod
-    def test_inheritance() -> None:
-        """Test inheritance chain."""
-        error = LiquipediaAPIError("MediaWiki error")
-        assert isinstance(error, APIError)
-        assert isinstance(error, LPTKError)
-
-    @staticmethod
-    def test_with_details() -> None:
-        """Test with details."""
-        error = LiquipediaAPIError(
-            "Page not found",
-            status_code=404,
-            details={"page": "Tournament/Invalid"},
-        )
-        assert "[HTTP 404]" in str(error)
-        assert "page='Tournament/Invalid'" in str(error)
-
-
 class TestWikitextParseError:
     """Tests for WikitextParseError."""
 
@@ -192,7 +169,6 @@ class TestExceptionHierarchy:
             ConfigurationError("config"),
             APIError("api"),
             StartGGAPIError("startgg"),
-            LiquipediaAPIError("liquipedia"),
             WikitextParseError("wikitext"),
         ]
 
@@ -206,7 +182,6 @@ class TestExceptionHierarchy:
         api_exceptions = [
             APIError("api"),
             StartGGAPIError("startgg"),
-            LiquipediaAPIError("liquipedia"),
         ]
 
         for exc in api_exceptions:
@@ -223,9 +198,9 @@ class TestExceptionHierarchy:
             except ConfigurationError:
                 pytest.fail("WikitextParseError should not be caught by ConfigurationError")
 
-        # StartGGAPIError should not catch LiquipediaAPIError
-        with pytest.raises(LiquipediaAPIError):
+        # StartGGAPIError should not catch WikitextParseError
+        with pytest.raises(WikitextParseError):
             try:
-                raise LiquipediaAPIError("liquipedia error")
+                raise WikitextParseError("parse error")
             except StartGGAPIError:
-                pytest.fail("LiquipediaAPIError should not be caught by StartGGAPIError")
+                pytest.fail("WikitextParseError should not be caught by StartGGAPIError")
