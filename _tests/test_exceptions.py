@@ -190,17 +190,12 @@ class TestExceptionHierarchy:
 
     @staticmethod
     def test_specific_exceptions_not_caught_by_siblings() -> None:
-        """Test that sibling exceptions are not caught by each other."""
-        # ConfigurationError should not catch WikitextParseError
+        """Test that sibling exceptions live on independent branches of the hierarchy."""
+        # WikitextParseError must propagate freely (no sibling base intercepts it).
         with pytest.raises(WikitextParseError):
-            try:
-                raise WikitextParseError("parse error")
-            except ConfigurationError:
-                pytest.fail("WikitextParseError should not be caught by ConfigurationError")
+            raise WikitextParseError("parse error")
 
-        # StartGGAPIError should not catch WikitextParseError
-        with pytest.raises(WikitextParseError):
-            try:
-                raise WikitextParseError("parse error")
-            except StartGGAPIError:
-                pytest.fail("WikitextParseError should not be caught by StartGGAPIError")
+        # WikitextParseError is a direct child of LPTKError, not a sibling base —
+        # confirming the hierarchy guarantees no `except SiblingBase` clause would catch it.
+        assert not issubclass(WikitextParseError, ConfigurationError)
+        assert not issubclass(WikitextParseError, StartGGAPIError)

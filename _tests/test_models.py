@@ -1,7 +1,7 @@
 """Tests for lptk.models module."""
 
-import pytest
 from pydantic import ValidationError
+import pytest
 
 from lptk.models import Phase, PhaseGroup, Player, SetDetails, SetSlot, Team
 

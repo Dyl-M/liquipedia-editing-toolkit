@@ -86,9 +86,7 @@ class TestStartGGClient:
                 assert client is not None
 
     @staticmethod
-    def test_get_event_id_success(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_event_id_success(client: StartGGClient, mock_session: MagicMock) -> None:
         """Test successful event ID retrieval."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -108,9 +106,7 @@ class TestStartGGClient:
         assert event_name == "Test Tournament"
 
     @staticmethod
-    def test_get_event_id_not_found(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_event_id_not_found(client: StartGGClient, mock_session: MagicMock) -> None:
         """Test event not found raises error."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -123,9 +119,7 @@ class TestStartGGClient:
         assert "Event not found" in str(exc_info.value)
 
     @staticmethod
-    def test_get_event_id_http_error(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_event_id_http_error(client: StartGGClient, mock_session: MagicMock) -> None:
         """Test HTTP error handling."""
         mock_response = MagicMock()
         mock_response.ok = False
@@ -139,15 +133,11 @@ class TestStartGGClient:
         assert exc_info.value.status_code == 500
 
     @staticmethod
-    def test_get_event_id_graphql_error(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_event_id_graphql_error(client: StartGGClient, mock_session: MagicMock) -> None:
         """Test GraphQL error handling."""
         mock_response = MagicMock()
         mock_response.ok = True
-        mock_response.json.return_value = {
-            "errors": [{"message": "Invalid query"}]
-        }
+        mock_response.json.return_value = {"errors": [{"message": "Invalid query"}]}
         mock_session.post.return_value = mock_response
 
         with pytest.raises(StartGGAPIError) as exc_info:
@@ -156,9 +146,7 @@ class TestStartGGClient:
         assert "GraphQL error" in str(exc_info.value)
 
     @staticmethod
-    def test_get_event_standings(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_event_standings(client: StartGGClient, mock_session: MagicMock) -> None:
         """Test event standings retrieval."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -176,9 +164,7 @@ class TestStartGGClient:
                                         {
                                             "id": 1,
                                             "gamerTag": "Player1",
-                                            "user": {
-                                                "location": {"country": "France"}
-                                            },
+                                            "user": {"location": {"country": "France"}},
                                         }
                                     ],
                                 },
@@ -210,9 +196,7 @@ class TestStartGGClient:
         assert teams[0].members[0].player_country == "fr"
 
     @staticmethod
-    def test_get_tournament_phases(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_tournament_phases(client: StartGGClient, mock_session: MagicMock) -> None:
         """Test tournament phases retrieval."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -259,9 +243,7 @@ class TestStartGGClient:
         assert phases[0].groups[0].identifier == "B1"
 
     @staticmethod
-    def test_get_phase_group_standings(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_phase_group_standings(client: StartGGClient, mock_session: MagicMock) -> None:
         """Test phase group standings retrieval."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -294,9 +276,7 @@ class TestStartGGClient:
         assert teams[0].team_name == "Team A"
 
     @staticmethod
-    def test_get_phase_group_seeds(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_phase_group_seeds(client: StartGGClient, mock_session: MagicMock) -> None:
         """Test phase group seeds retrieval."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -329,9 +309,7 @@ class TestStartGGClient:
         assert teams[0].team_name == "Top Seed"
 
     @staticmethod
-    def test_get_set_details_success(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_set_details_success(client: StartGGClient, mock_session: MagicMock) -> None:
         """Test set details retrieval."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -368,9 +346,7 @@ class TestStartGGClient:
         assert details.loser_score == 1
 
     @staticmethod
-    def test_get_set_details_not_found(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_set_details_not_found(client: StartGGClient, mock_session: MagicMock) -> None:
         """Test set details when set not found."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -381,9 +357,7 @@ class TestStartGGClient:
         assert details is None
 
     @staticmethod
-    def test_get_set_details_incomplete(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_set_details_incomplete(client: StartGGClient, mock_session: MagicMock) -> None:
         """Test set details for incomplete set."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -403,9 +377,7 @@ class TestStartGGClient:
         assert details is None
 
     @staticmethod
-    def test_get_entrant_last_elimination_set_id(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_entrant_last_elimination_set_id(client: StartGGClient, mock_session: MagicMock) -> None:
         """Test elimination set ID retrieval."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -427,9 +399,7 @@ class TestStartGGClient:
         assert set_id == 999
 
     @staticmethod
-    def test_get_entrant_last_elimination_set_id_winner(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_entrant_last_elimination_set_id_winner(client: StartGGClient, mock_session: MagicMock) -> None:
         """Test elimination set ID for tournament winner (no elimination)."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -451,9 +421,7 @@ class TestStartGGClient:
         assert set_id is None
 
     @staticmethod
-    def test_has_incomplete_sets_true(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_has_incomplete_sets_true(client: StartGGClient, mock_session: MagicMock) -> None:
         """Test has_incomplete_sets returns True when sets pending."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -471,9 +439,7 @@ class TestStartGGClient:
         assert result is True
 
     @staticmethod
-    def test_has_incomplete_sets_false(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_has_incomplete_sets_false(client: StartGGClient, mock_session: MagicMock) -> None:
         """Test has_incomplete_sets returns False when no pending sets."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -507,9 +473,7 @@ class TestStartGGClient:
             mock_session.close.assert_called_once()
 
     @patch("lptk.api.startgg.time.sleep")
-    def test_rate_limit_sleeps_when_delay_positive(
-        self, mock_sleep: MagicMock, mock_session: MagicMock
-    ) -> None:
+    def test_rate_limit_sleeps_when_delay_positive(self, mock_sleep: MagicMock, mock_session: MagicMock) -> None:
         """Rate limit delay > 0 triggers time.sleep."""
         with (
             patch("lptk.api.startgg.get_token", return_value="test-token"),
@@ -522,9 +486,7 @@ class TestStartGGClient:
             mock_sleep.assert_called_once_with(0.25)
 
     @staticmethod
-    def test_get_tournament_phases_event_not_found(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_tournament_phases_event_not_found(client: StartGGClient, mock_session: MagicMock) -> None:
         """get_tournament_phases raises when event is missing."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -537,9 +499,7 @@ class TestStartGGClient:
         assert "Event not found" in str(exc_info.value)
 
     @staticmethod
-    def test_get_phase_group_standings_empty_phase_group(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_phase_group_standings_empty_phase_group(client: StartGGClient, mock_session: MagicMock) -> None:
         """get_phase_group_standings breaks when phaseGroup is None."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -550,9 +510,7 @@ class TestStartGGClient:
         assert teams == []
 
     @staticmethod
-    def test_get_phase_group_standings_empty_nodes(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_phase_group_standings_empty_nodes(client: StartGGClient, mock_session: MagicMock) -> None:
         """get_phase_group_standings breaks when nodes list is empty."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -573,9 +531,7 @@ class TestStartGGClient:
         assert teams == []
 
     @staticmethod
-    def test_get_phase_group_standings_multi_page(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_phase_group_standings_multi_page(client: StartGGClient, mock_session: MagicMock) -> None:
         """get_phase_group_standings paginates across multiple pages."""
         page1 = MagicMock()
         page1.ok = True
@@ -627,9 +583,7 @@ class TestStartGGClient:
         assert [t.team_name for t in teams] == ["Team A", "Team B"]
 
     @staticmethod
-    def test_get_phase_group_seeds_empty_phase_group(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_phase_group_seeds_empty_phase_group(client: StartGGClient, mock_session: MagicMock) -> None:
         """get_phase_group_seeds breaks when phaseGroup is None."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -640,9 +594,7 @@ class TestStartGGClient:
         assert seeds == []
 
     @staticmethod
-    def test_get_phase_group_seeds_empty_nodes(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_phase_group_seeds_empty_nodes(client: StartGGClient, mock_session: MagicMock) -> None:
         """get_phase_group_seeds breaks when nodes list is empty."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -663,9 +615,7 @@ class TestStartGGClient:
         assert seeds == []
 
     @staticmethod
-    def test_get_phase_group_seeds_multi_page(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_phase_group_seeds_multi_page(client: StartGGClient, mock_session: MagicMock) -> None:
         """get_phase_group_seeds paginates across multiple pages."""
         page1 = MagicMock()
         page1.ok = True
@@ -717,9 +667,7 @@ class TestStartGGClient:
         assert [s.team_name for s in seeds] == ["Seed 1", "Seed 2"]
 
     @staticmethod
-    def test_get_set_details_swallows_api_error(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_set_details_swallows_api_error(client: StartGGClient, mock_session: MagicMock) -> None:
         """get_set_details returns None on StartGGAPIError."""
         mock_response = MagicMock()
         mock_response.ok = False
@@ -731,9 +679,7 @@ class TestStartGGClient:
         assert details is None
 
     @staticmethod
-    def test_get_set_details_missing_winner_id(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_set_details_missing_winner_id(client: StartGGClient, mock_session: MagicMock) -> None:
         """get_set_details returns None when winnerId is absent on a 2-slot set."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -756,9 +702,7 @@ class TestStartGGClient:
         assert details is None
 
     @staticmethod
-    def test_get_set_details_falsy_entrant_fields(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_set_details_falsy_entrant_fields(client: StartGGClient, mock_session: MagicMock) -> None:
         """get_set_details returns None when an entrant's name or id is missing."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -781,9 +725,7 @@ class TestStartGGClient:
         assert details is None
 
     @staticmethod
-    def test_get_set_details_slot2_wins(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_set_details_slot2_wins(client: StartGGClient, mock_session: MagicMock) -> None:
         """get_set_details correctly swaps when slot2 holds the winner."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -816,9 +758,7 @@ class TestStartGGClient:
         assert details.loser_score == 1
 
     @staticmethod
-    def test_get_set_details_winner_id_matches_neither_slot(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_set_details_winner_id_matches_neither_slot(client: StartGGClient, mock_session: MagicMock) -> None:
         """get_set_details returns None when winnerId matches no slot entrant."""
         mock_response = MagicMock()
         mock_response.ok = True
@@ -855,24 +795,18 @@ class TestStartGGClient:
         assert result is None
 
     @staticmethod
-    def test_get_entrant_last_elimination_set_id_empty_nodes(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_get_entrant_last_elimination_set_id_empty_nodes(client: StartGGClient, mock_session: MagicMock) -> None:
         """get_entrant_last_elimination_set_id returns None when no sets found."""
         mock_response = MagicMock()
         mock_response.ok = True
-        mock_response.json.return_value = {
-            "data": {"event": {"id": 12345, "sets": {"nodes": []}}}
-        }
+        mock_response.json.return_value = {"data": {"event": {"id": 12345, "sets": {"nodes": []}}}}
         mock_session.post.return_value = mock_response
 
         result = client.get_entrant_last_elimination_set_id(12345, 100)
         assert result is None
 
     @staticmethod
-    def test_has_incomplete_sets_swallows_api_error(
-        client: StartGGClient, mock_session: MagicMock
-    ) -> None:
+    def test_has_incomplete_sets_swallows_api_error(client: StartGGClient, mock_session: MagicMock) -> None:
         """has_incomplete_sets returns False on StartGGAPIError."""
         mock_response = MagicMock()
         mock_response.ok = False
