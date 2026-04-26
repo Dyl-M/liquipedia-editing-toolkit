@@ -5,10 +5,10 @@ with exponential backoff, suitable for handling transient API errors.
 """
 
 # Standard library
-import logging
-import time
 from collections.abc import Callable
 from functools import wraps
+import logging
+import time
 from typing import ParamSpec, TypeVar
 
 # Third-party
@@ -74,14 +74,10 @@ def retry_with_backoff(
                     result = func(*args, **kwargs)
 
                     # Check if result is a Response with a retryable status code
-                    if (
-                        isinstance(result, requests.Response)
-                        and result.status_code in retryable_status_codes
-                    ):
+                    if isinstance(result, requests.Response) and result.status_code in retryable_status_codes:
                         if attempt < max_retries:
                             logger.warning(
-                                "Retryable status %d on attempt %d/%d, "
-                                "retrying in %.1fs...",
+                                "Retryable status %d on attempt %d/%d, retrying in %.1fs...",
                                 result.status_code,
                                 attempt + 1,
                                 max_retries + 1,
@@ -105,8 +101,7 @@ def retry_with_backoff(
                 except retryable_exceptions as e:
                     if attempt < max_retries:
                         logger.warning(
-                            "Retryable error on attempt %d/%d: %s, "
-                            "retrying in %.1fs...",
+                            "Retryable error on attempt %d/%d: %s, retrying in %.1fs...",
                             attempt + 1,
                             max_retries + 1,
                             str(e),

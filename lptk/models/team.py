@@ -22,6 +22,7 @@ class Player(BaseModel):
     player_country: str | None = None
 
     def __str__(self) -> str:
+        """Return ``"<tag> (<country>)"`` when a country is set, else just the tag."""
         if self.player_country:
             return f"{self.player_tag} ({self.player_country})"
         return self.player_tag
@@ -59,6 +60,7 @@ class Team(BaseModel):
     pool_number: int | None = None
 
     def __str__(self) -> str:
+        """Return ``"#<placement> <team_name>"`` (or ``TBD`` for placeholder teams)."""
         name = self.team_name or "TBD"
         return f"#{self.placement} {name}"
 
