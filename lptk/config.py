@@ -1,10 +1,12 @@
 """Configuration management for the lptk package.
 
 Settings are loaded from environment variables with the LPTK_ prefix.
-The token is loaded lazily when first accessed via get_token().
+Tokens are read lazily from a JSON keys file (default ``.tokens/local_keys.json``),
+with the shape ``{"startgg": "...", "lpdb": "..."}``.
 """
 
 # Standard library
+import json
 import logging
 import sys
 from functools import lru_cache
@@ -12,7 +14,7 @@ from pathlib import Path
 from typing import Literal
 
 # Third-party
-from pydantic import Field
+from pydantic import BaseModel, Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Local
@@ -40,6 +42,19 @@ def _get_project_root() -> Path:
 PROJECT_ROOT = _get_project_root()
 
 
+class LocalKeys(BaseModel):
+    """Schema of ``.tokens/local_keys.json``.
+
+    Attributes:
+        startgg: start.gg API token (required).
+        lpdb: Liquipedia DB API key (optional; required only when
+            ``get_lpdb_token()`` is called).
+    """
+
+    startgg: str = Field(min_length=1, description="start.gg API token")
+    lpdb: str | None = Field(default=None, description="Liquipedia DB API key")
+
+
 class Settings(BaseSettings):
     """Application settings loaded from environment variables.
 
@@ -47,12 +62,12 @@ class Settings(BaseSettings):
     For example, LPTK_LOG_LEVEL=DEBUG will set log_level to "DEBUG".
 
     Attributes:
-        token_path: Path to the start.gg API token file.
+        local_keys_path: Path to the JSON file holding local API keys.
         data_dir: Directory for storing JSON output files.
         log_level: Logging verbosity level.
         startgg_api_url: start.gg GraphQL API endpoint.
-        liquipedia_api_url: Liquipedia MediaWiki API endpoint.
         rate_limit_delay: Delay between API calls in seconds.
+        user_agent: Optional User-Agent header for API requests.
     """
 
     model_config = SettingsConfigDict(
@@ -62,9 +77,9 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    token_path: Path = Field(
-        default=PROJECT_ROOT / "_token" / "start.gg-token.txt",
-        description="Path to the start.gg API token file",
+    local_keys_path: Path = Field(
+        default=PROJECT_ROOT / ".tokens" / "local_keys.json",
+        description="Path to the JSON file holding local API keys (startgg, lpdb)",
     )
     data_dir: Path = Field(
         default=PROJECT_ROOT / "_data",
@@ -78,14 +93,14 @@ class Settings(BaseSettings):
         default="https://api.start.gg/gql/alpha",
         description="start.gg GraphQL API endpoint",
     )
-    liquipedia_api_url: str = Field(
-        default="https://liquipedia.net/rocketleague/api.php",
-        description="Liquipedia MediaWiki API endpoint",
-    )
     rate_limit_delay: float = Field(
         default=0.5,
         ge=0.0,
-        description="Delay between API calls in seconds",
+        description="Delay between start.gg API calls in seconds",
+    )
+    user_agent: str | None = Field(
+        default=None,
+        description="User-Agent header for API requests",
     )
 
 
@@ -103,44 +118,85 @@ def get_settings() -> Settings:
 
 
 @lru_cache(maxsize=1)
+def _load_local_keys() -> LocalKeys:
+    """Read and validate ``local_keys.json`` once, then cache it.
+
+    Raises:
+        ConfigurationError: If the file is missing, not valid JSON, or
+            fails schema validation (e.g. missing required ``startgg`` key).
+    """
+    settings = get_settings()
+    keys_path = settings.local_keys_path
+
+    if not keys_path.exists():
+        raise ConfigurationError(
+            f"Local keys file not found: {keys_path}",
+            details={"local_keys_path": str(keys_path)},
+        )
+
+    raw = keys_path.read_text(encoding="utf-8")
+
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ConfigurationError(
+            f"Local keys file is not valid JSON: {keys_path}",
+            details={"local_keys_path": str(keys_path), "error": str(exc)},
+        ) from exc
+
+    try:
+        return LocalKeys.model_validate(payload)
+    except ValidationError as exc:
+        raise ConfigurationError(
+            f"Local keys file failed schema validation: {keys_path}",
+            details={"local_keys_path": str(keys_path), "errors": exc.errors()},
+        ) from exc
+
+
 def get_token() -> str:
     """Get the start.gg API token.
 
-    The token is loaded lazily from the configured token_path on first access
-    and cached for subsequent calls.
+    Reads ``local_keys.json`` on first call and returns the ``startgg`` field.
 
     Returns:
-        The API token string.
+        The start.gg API token string.
 
     Raises:
-        ConfigurationError: If the token file is missing or empty.
+        ConfigurationError: If the keys file is missing, malformed, or the
+            ``startgg`` field is missing or empty.
     """
-    settings = get_settings()
-    token_path = settings.token_path
+    return _load_local_keys().startgg
 
-    if not token_path.exists():
+
+def get_lpdb_token() -> str:
+    """Get the Liquipedia DB API key.
+
+    Reads ``local_keys.json`` on first call and returns the ``lpdb`` field.
+
+    Returns:
+        The Liquipedia DB API key.
+
+    Raises:
+        ConfigurationError: If the keys file is missing or malformed, or the
+            ``lpdb`` field is absent / empty.
+    """
+    keys = _load_local_keys()
+    if not keys.lpdb:
         raise ConfigurationError(
-            f"Token file not found: {token_path}",
-            details={"token_path": str(token_path)},
+            "Liquipedia DB key (lpdb) missing from local keys file",
+            details={"local_keys_path": str(get_settings().local_keys_path)},
         )
-
-    token = token_path.read_text(encoding="utf-8").strip()
-
-    if not token:
-        raise ConfigurationError(
-            f"Token file is empty: {token_path}",
-            details={"token_path": str(token_path)},
-        )
-
-    return token
+    return keys.lpdb
 
 
 def clear_token_cache() -> None:
-    """Clear the cached token.
+    """Clear the cached local keys and settings.
 
-    Use this to force reloading the token from disk on the next get_token() call.
+    Forces the next ``get_token()`` / ``get_lpdb_token()`` call to re-read
+    the JSON file from disk, including any change to ``LPTK_LOCAL_KEYS_PATH``.
     """
-    get_token.cache_clear()
+    _load_local_keys.cache_clear()
+    get_settings.cache_clear()
 
 
 def setup_logging() -> None:

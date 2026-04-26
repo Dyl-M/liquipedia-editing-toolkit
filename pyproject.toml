@@ -25,6 +25,7 @@ classifiers = [
 
 dependencies = [
     "beautifulsoup4==4.14.3",
+    "liquipydia==0.1.0",
     "pycountry==26.2.16",
     "pydantic==2.12.5",
     "pydantic-settings==2.13.1",

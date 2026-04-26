@@ -43,13 +43,15 @@ _tests/
 
 Defined in `conftest.py`:
 
-| Fixture            | Scope    | Description                                   |
-|--------------------|----------|-----------------------------------------------|
-| `tmp_token_file`   | function | Creates a temp file with a test token         |
-| `empty_token_file` | function | Creates an empty token file for error testing |
-| `clean_env`        | function | Removes all `LPTK_*` environment variables    |
-| `reset_settings`   | function | Clears settings and token caches after test   |
-| `mock_settings`    | function | Provides mock configuration values            |
+| Fixture                  | Scope    | Description                                                 |
+|--------------------------|----------|-------------------------------------------------------------|
+| `tmp_token_file`         | function | Creates a temp `local_keys.json` with `startgg` + `lpdb`    |
+| `empty_token_file`       | function | Creates a keys file containing `{}` (fails schema)          |
+| `malformed_keys_file`    | function | Creates a keys file with invalid JSON content               |
+| `startgg_only_keys_file` | function | Keys file with only `startgg` set (no `lpdb`)               |
+| `clean_env`              | function | Removes all `LPTK_*` environment variables                  |
+| `reset_settings`         | function | Clears settings and token caches after test                 |
+| `mock_settings`          | function | Provides mock configuration values                          |
 
 ### Helper Functions
 
@@ -63,8 +65,8 @@ with env_override(LPTK_LOG_LEVEL="DEBUG"):
 # Original value restored
 
 # Unset a variable
-with env_override(LPTK_TOKEN_PATH=None):
-    # LPTK_TOKEN_PATH is unset
+with env_override(LPTK_LOCAL_KEYS_PATH=None):
+    # LPTK_LOCAL_KEYS_PATH is unset
     pass
 ```
 

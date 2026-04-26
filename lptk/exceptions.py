@@ -73,16 +73,6 @@ class StartGGAPIError(APIError):
     """
 
 
-class LiquipediaAPIError(APIError):
-    """Raised when Liquipedia API requests fail.
-
-    Examples:
-        - HTTP errors from the MediaWiki API
-        - Invalid page titles
-        - Rate limiting responses
-    """
-
-
 class WikitextParseError(LPTKError):
     """Raised when wikitext parsing fails.
 

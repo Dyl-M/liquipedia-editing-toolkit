@@ -4,12 +4,16 @@
 ![License](https://img.shields.io/github/license/Dyl-M/liquipedia-editing-toolkit)
 ![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![DeepSource](https://app.deepsource.com/gh/Dyl-M/liquipedia-editing-toolkit.svg/?label=active+issues&show_trend=false&token=Jkf0lDe06vzL02w3tnFLV3yh)](https://app.deepsource.com/gh/Dyl-M/liquipedia-editing-toolkit/)
+[![DeepSource](https://app.deepsource.com/gh/Dyl-M/liquipedia-editing-toolkit.svg/?label=code+coverage&show_trend=false&token=Jkf0lDe06vzL02w3tnFLV3yh)](https://app.deepsource.com/gh/Dyl-M/liquipedia-editing-toolkit/)
 
 Toolkit for automating Liquipedia page editing with data from start.gg esports tournaments (Rocket League focus).
 
-> **Status: v0.0.1-alpha** - Foundation phase complete. The `lptk/` package now includes configuration management,
-> custom exceptions, and a test suite with 100% coverage. Legacy code remains in `_archive/`.
-> See [`_docs/ROADMAP.md`](_docs/ROADMAP.md) for the development plan.
+> **Status: v0.0.2-alpha** - API layer complete. The `lptk/` package now includes `StartGGClient` (start.gg GraphQL),
+> Pydantic data models (`Team`, `Player`, `Phase`, `SetDetails`), retry logic with exponential backoff, and a test suite
+> with 128 tests (100% coverage). Liquipedia DB API access is delegated to the [
+`liquipydia`](https://github.com/Dyl-M/liquipydia) library. Legacy code remains in `_archive/`. See [
+`_docs/ROADMAP.md`](_docs/ROADMAP.md) for the development plan and [`CHANGELOG.md`](CHANGELOG.md) for version history.
 
 ## Features
 
@@ -52,30 +56,40 @@ Automatically fill Liquipedia prize pool sections with tournament results:
 ## Quick Start (New `lptk` Package)
 
 ```python
-from lptk import get_settings, get_token, LPTKError
+from lptk import StartGGClient, LPTKError
 
-# Access configuration
-settings = get_settings()
-print(settings.startgg_api_url)  # https://api.start.gg/gql/alpha
+# Fetch tournament data from start.gg
+with StartGGClient() as client:
+    event_id, name = client.get_event_id("tournament/rlcs-2026/event/main")
+    teams = client.get_event_standings(event_id, top_n=16)
+    for team in teams:
+        print(f"{team.placement}. {team.team_name}")
 
-# Get API token (requires _token/start.gg-token.txt)
-try:
-    token = get_token()
-except LPTKError as e:
-    print(f"Configuration error: {e}")
+# Liquipedia DB access is provided by the liquipydia library
+from liquipydia import LiquipediaClient
+
+with LiquipediaClient() as lp:
+    player = lp.get_player("Jstn")
+    team = lp.get_team("Team Vitality")
 ```
 
 Environment variables (all prefixed with `LPTK_`):
-- `LPTK_TOKEN_PATH` - Path to API token file
+
+- `LPTK_LOCAL_KEYS_PATH` - Path to the local JSON keys file (default `.token/local_keys.json`)
 - `LPTK_LOG_LEVEL` - Logging level (DEBUG, INFO, WARNING, ERROR)
-- `LPTK_RATE_LIMIT_DELAY` - Delay between API calls (seconds)
+- `LPTK_STARTGG_API_URL` - start.gg GraphQL endpoint
+- `LPTK_RATE_LIMIT_DELAY` - Delay between start.gg API calls (seconds)
+- `LPTK_USER_AGENT` - Optional User-Agent for API requests
+
+> Liquipedia DB API credentials and rate-limiting are configured via the `liquipydia` library — refer to its
+> [documentation](https://github.com/Dyl-M/liquipydia) for details.
 
 ## Setup
 
 ### Requirements
 
 - Python 3.12+
-- Dependencies: `pydantic`, `pydantic-settings`, `requests`, `beautifulsoup4`, `pycountry`, `typer`
+- Dependencies: `pydantic`, `pydantic-settings`, `requests`, `liquipydia`, `beautifulsoup4`, `pycountry`, `typer`
 
 ### Installation
 
@@ -91,50 +105,66 @@ Or with pip:
 pip install -e .
 ```
 
-### API Token
+### API Tokens
 
-Create a start.gg API token and save it to:
+Credentials live under the `.token/` folder (gitignored, created manually) as two JSON files grouped by scope:
 
 ```
-_token/start.gg-token.txt
+.token/
+├── local_keys.json    # runtime keys loaded by lptk
+└── repo_keys.json     # local-tooling keys (not loaded by lptk)
 ```
 
-This file is gitignored and must be created manually.
+**`.token/local_keys.json`** — runtime keys:
+
+```json
+{
+  "startgg": "<start.gg api token>",
+  "lpdb": "<liquipedia db api key>"
+}
+```
+
+`startgg` is required; `lpdb` is optional and only needed when your code calls `get_lpdb_token()` (or passes
+the key to `liquipydia.LiquipediaClient`).
+
+**`.token/repo_keys.json`** — local tooling (CI uses GitHub secrets; `lptk` does not read this file):
+
+```json
+{
+  "pat": "<github personal access token>"
+}
+```
+
+Token sources:
+
+- **start.gg**: Get your token from [start.gg Developer Settings](https://start.gg/admin/profile/developer).
+- **Liquipedia DB**: Request an API key at [liquipedia.net/api](https://liquipedia.net/api). The key is consumed
+  by the [`liquipydia`](https://github.com/Dyl-M/liquipydia) library.
+
+Override the keys file path via the `LPTK_LOCAL_KEYS_PATH` environment variable if needed.
 
 ## Project Structure
 
 ```
-liquipedia-editing-toolkit/
-├── lptk/                             # New package (v0.0.1-alpha)
-│   ├── __init__.py                   # Package exports, version
-│   ├── config.py                     # Settings management (pydantic-settings)
-│   ├── exceptions.py                 # Custom exception hierarchy
-│   ├── py.typed                      # PEP 561 marker
-│   └── README.md                     # Package documentation
-├── _tests/                           # Test suite (100% coverage)
-│   ├── conftest.py                   # Shared fixtures
-│   ├── test_config.py                # Config module tests
-│   ├── test_exceptions.py            # Exception tests
-│   └── README.md                     # Test documentation
-├── _archive/                         # Legacy code (archived during restructure)
-│   └── src/                          # Original source modules
-│       ├── tournament_page_filler/   # Generate TeamCards/TeamParticipants
-│       ├── stream_filler/            # Insert stream links into brackets
-│       └── prize_pool_filler/        # Fill prize pool sections
-├── _docs/                            # Project documentation
-│   └── ROADMAP.md                    # Development roadmap and architecture
-├── _data/                            # Tournament JSON data (gitignored)
-├── _token/                           # API tokens (gitignored)
-├── pyproject.toml                    # Project configuration
-├── .python-version                   # Python version (3.12)
-└── README.md
+── lptk/                             # Main package (v0.0.2-alpha)
+    ├── __init__.py                   # Package exports, version
+    ├── config.py                     # Settings management (pydantic-settings)
+    ├── exceptions.py                 # Custom exception hierarchy
+    ├── py.typed                      # PEP 561 marker
+    ├── api/                          # API clients
+    │   ├── startgg.py                # StartGGClient - start.gg GraphQL
+    │   └── _retry.py                 # Retry decorator with exponential backoff
+    └── models/                       # Pydantic data models
+        ├── team.py                   # Player, Team models
+        └── tournament.py             # Phase, PhaseGroup, SetDetails models
+
 ```
 
 ### Target Architecture (v1.0.0)
 
 ```
 lptk/
-├── api/                      # API clients (start.gg, Liquipedia)
+├── api/                      # start.gg client (Liquipedia via "liquipydia" lib.)
 ├── wikitext/                 # Wikitext parsing and generation
 │   ├── parser.py             # Parse templates from wikitext
 │   ├── builder.py            # Build wikitext strings
