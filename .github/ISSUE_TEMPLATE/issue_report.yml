@@ -1,0 +1,89 @@
+name: 🐛 Issue report
+description: Create a report to indicate a problem with `liquipedia-editing-toolkit`
+labels: [ 🐛 bug ]
+body:
+
+  - type: textarea
+    id: reproduce-steps
+    attributes:
+      label: Steps to reproduce
+      description: Sequence of events leading to the behavior.
+      placeholder: |
+        Example:
+            1. Importing `StartGGClient` from `lptk`
+            2. Calling X method with Y argument
+            3. Leading to following error: `<ERROR_CODE>`
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+      placeholder: |
+        Example:
+          "This should happen..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual behavior
+      description: A clear and concise description of what actually happens (include Error codes).
+      placeholder: |
+        Example:
+          "This happened instead..."
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      description: The OS used.
+      placeholder: |
+        Example: "Windows 11"
+    validations:
+      required: true
+
+  - type: input
+    id: lptk-version
+    attributes:
+      label: liquipedia-editing-toolkit version
+      description: The version of `liquipedia-editing-toolkit` (`lptk`) you are using.
+      placeholder: |
+        Example: "0.0.3-alpha"
+    validations:
+      required: true
+
+  - type: input
+    id: distribution
+    attributes:
+      label: Package-management system and Python version
+      description: Package manager used for program execution.
+      placeholder: |
+        Example: "uv, PiP, Anaconda, etc. w/ Python 3.x"
+    validations:
+      required: true
+
+  - type: textarea
+    id: other-details
+    attributes:
+      label: Other details
+      placeholder: |
+        Additional details and attachments.
+
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: Acknowledgements
+      description: Read this carefully, your issue will be closed and ignored if you skimmed through this.
+      options:
+        - label: I have searched the existing issues and this is a new ticket, **NOT** a duplicate or related to another open issue.
+          required: true
+        - label: I have written a short but informative title.
+          required: true
+        - label: I have filled out all of the requested information in this form.
+          required: true

@@ -11,15 +11,27 @@ on:
   schedule:
     - cron: '0 1 1 1 *' # 01:00 AM on January 1
 
+permissions:
+  contents: read
+
 jobs:
   update-license-year:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: ${{ secrets.PAT }}
+
+      - name: Update Sphinx copyright year
+        run: |
+          YEAR=$(date +%Y)
+          sed -i "s/copyright = \"[0-9]\\{4\\},/copyright = \"$YEAR,/" _docs/sphinx/conf.py
 
       - uses: FantasticFiasco/action-update-license-year@v3
         with:

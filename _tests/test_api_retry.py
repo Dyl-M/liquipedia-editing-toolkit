@@ -51,9 +51,7 @@ class TestRetryWithBackoff:
         mock_sleep.assert_any_call(2.0)
 
     @patch("lptk.api._retry.time.sleep")
-    def test_max_retries_exceeded_raises_api_error(
-        self, mock_sleep: MagicMock
-    ) -> None:
+    def test_max_retries_exceeded_raises_api_error(self, mock_sleep: MagicMock) -> None:
         """Test that max retries exceeded raises APIError."""
         call_count = 0
 
@@ -93,9 +91,7 @@ class TestRetryWithBackoff:
 
     @patch("lptk.api._retry.time.sleep")
     @pytest.mark.parametrize("status_code", [500, 502, 503, 504])
-    def test_retries_on_5xx_status_codes(
-        self, mock_sleep: MagicMock, status_code: int
-    ) -> None:
+    def test_retries_on_5xx_status_codes(self, mock_sleep: MagicMock, status_code: int) -> None:
         """Test retries on 5xx status codes."""
         call_count = 0
 
@@ -120,7 +116,7 @@ class TestRetryWithBackoff:
             """Raise a non-retryable ValueError."""
             raise ValueError("Not retryable")
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Not retryable"):
             value_error_func()
 
     @patch("lptk.api._retry.time.sleep")

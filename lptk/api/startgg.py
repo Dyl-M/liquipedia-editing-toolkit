@@ -44,8 +44,7 @@ def _country_iso2(country_str: str | None) -> str | None:
     # Try fuzzy search (search_fuzzy raises LookupError on miss, never returns empty)
     try:
         results = pycountry.countries.search_fuzzy(country_str)
-        # pycountry types are incomplete, alpha_2 exists on Country objects
-        return str(results[0].alpha_2).lower()  # type: ignore[attr-defined]
+        return str(results[0].alpha_2).lower()
     except LookupError:
         logger.warning("Could not find ISO code for country: '%s'", country_str)
         return None
@@ -68,9 +67,9 @@ class StartGGClient:
     """
 
     def __init__(
-            self,
-            token: str | None = None,
-            session: requests.Session | None = None,
+        self,
+        token: str | None = None,
+        session: requests.Session | None = None,
     ) -> None:
         """Initialize the StartGG client.
 
@@ -100,10 +99,10 @@ class StartGGClient:
         return self
 
     def __exit__(
-            self,
-            exc_type: type[BaseException] | None,
-            exc_val: BaseException | None,
-            exc_tb: TracebackType | None,
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Exit context manager and close session."""
         self.close()
@@ -225,12 +224,7 @@ class StartGGClient:
         data = self._post(query, {"eventId": event_id, "perPage": top_n})
         self._rate_limit()
 
-        nodes = (
-            (data.get("data") or {})
-            .get("event", {})
-            .get("standings", {})
-            .get("nodes", [])
-        )
+        nodes = (data.get("data") or {}).get("event", {}).get("standings", {}).get("nodes", [])
 
         teams = []
         for node in nodes:
@@ -547,7 +541,13 @@ class StartGGClient:
         score2 = self._extract_slot_score(slots[1])
 
         assignment = self._assign_winner_and_loser(
-            winner_id, id1, name1, score1, id2, name2, score2,
+            winner_id,
+            id1,
+            name1,
+            score1,
+            id2,
+            name2,
+            score2,
         )
         if assignment is None:
             return None
@@ -565,7 +565,7 @@ class StartGGClient:
 
     @staticmethod
     def _extract_match_entrants(
-            slots: list[dict[str, Any]],
+        slots: list[dict[str, Any]],
     ) -> tuple[int, int, str, str] | None:
         """Pull entrant IDs and names from the two match slots.
 
@@ -587,10 +587,10 @@ class StartGGClient:
             return None
 
         return (
-            cast(int, id1),
-            cast(int, id2),
-            cast(str, name1),
-            cast(str, name2),
+            cast("int", id1),
+            cast("int", id2),
+            cast("str", name1),
+            cast("str", name2),
         )
 
     @staticmethod
@@ -611,13 +611,13 @@ class StartGGClient:
 
     @staticmethod
     def _assign_winner_and_loser(
-            winner_id: int,
-            id1: int,
-            name1: str,
-            score1: int | None,
-            id2: int,
-            name2: str,
-            score2: int | None,
+        winner_id: int,
+        id1: int,
+        name1: str,
+        score1: int | None,
+        id2: int,
+        name2: str,
+        score2: int | None,
     ) -> tuple[str, str, int | None, int | None] | None:
         """Map ``winner_id`` onto the slot data to pick winner and loser.
 
@@ -640,9 +640,7 @@ class StartGGClient:
             return name2, name1, score2, score1
         return None
 
-    def get_entrant_last_elimination_set_id(
-            self, event_id: int, entrant_id: int
-    ) -> int | None:
+    def get_entrant_last_elimination_set_id(self, event_id: int, entrant_id: int) -> int | None:
         """Get the ID of the set that eliminated an entrant.
 
         Args:
@@ -737,9 +735,7 @@ class StartGGClient:
         return total > 0
 
     @staticmethod
-    def _parse_participants(
-            participants: list[dict[str, Any]]
-    ) -> list[Player]:
+    def _parse_participants(participants: list[dict[str, Any]]) -> list[Player]:
         """Parse participant data into Player models.
 
         Args:
@@ -750,9 +746,7 @@ class StartGGClient:
         """
         players = []
         for p in participants:
-            country = (
-                ((p.get("user") or {}).get("location") or {}).get("country")
-            )
+            country = ((p.get("user") or {}).get("location") or {}).get("country")
             players.append(
                 Player(
                     player_id=p.get("id"),

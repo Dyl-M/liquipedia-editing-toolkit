@@ -17,11 +17,13 @@ class LPTKError(Exception):
     """
 
     def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
+        """Store the message and any structured context."""
         self.message = message
         self.details = details or {}
         super().__init__(message)
 
     def __str__(self) -> str:
+        """Return the message, suffixed with key=value details when present."""
         if self.details:
             detail_str = ", ".join(f"{k}={v!r}" for k, v in self.details.items())
             return f"{self.message} ({detail_str})"
@@ -53,10 +55,12 @@ class APIError(LPTKError):
         status_code: int | None = None,
         details: dict[str, Any] | None = None,
     ) -> None:
+        """Store the HTTP status code alongside the base error fields."""
         self.status_code = status_code
         super().__init__(message, details)
 
     def __str__(self) -> str:
+        """Prefix the base message with `[HTTP <status>]` when a status code is set."""
         base = super().__str__()
         if self.status_code is not None:
             return f"[HTTP {self.status_code}] {base}"

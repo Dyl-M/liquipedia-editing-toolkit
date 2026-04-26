@@ -6,11 +6,11 @@ with the shape ``{"startgg": "...", "lpdb": "..."}``.
 """
 
 # Standard library
+from functools import lru_cache
 import json
 import logging
-import sys
-from functools import lru_cache
 from pathlib import Path
+import sys
 from typing import Literal
 
 # Third-party

@@ -54,9 +54,7 @@ class TestSettings:
             assert settings.log_level == "DEBUG"
 
     @staticmethod
-    def test_env_override_local_keys_path(
-        reset_settings: None, tmp_path: Path
-    ) -> None:
+    def test_env_override_local_keys_path(reset_settings: None, tmp_path: Path) -> None:
         """Test that LPTK_LOCAL_KEYS_PATH environment variable overrides default."""
         custom_path = tmp_path / "custom_keys.json"
         with env_override(LPTK_LOCAL_KEYS_PATH=str(custom_path)):
@@ -73,7 +71,10 @@ class TestSettings:
     @staticmethod
     def test_rate_limit_must_be_non_negative(reset_settings: None) -> None:
         """Test that rate_limit_delay cannot be negative."""
-        with (env_override(LPTK_RATE_LIMIT_DELAY="-1"), pytest.raises(ValueError)):
+        with (
+            env_override(LPTK_RATE_LIMIT_DELAY="-1"),
+            pytest.raises(ValueError, match="rate_limit_delay"),
+        ):
             Settings()
 
 
@@ -142,9 +143,7 @@ class TestGetToken:
     """Tests for the get_token function."""
 
     @staticmethod
-    def test_loads_token_from_file(
-        tmp_token_file: Path, reset_settings: None
-    ) -> None:
+    def test_loads_token_from_file(tmp_token_file: Path, reset_settings: None) -> None:
         """Test that get_token loads the start.gg token from the JSON keys file."""
         with env_override(LPTK_LOCAL_KEYS_PATH=str(tmp_token_file)):
             get_settings.cache_clear()
@@ -162,18 +161,14 @@ class TestGetToken:
             token1 = get_token()
 
             # Overwrite the keys file
-            tmp_token_file.write_text(
-                json.dumps({"startgg": "modified-token"}), encoding="utf-8"
-            )
+            tmp_token_file.write_text(json.dumps({"startgg": "modified-token"}), encoding="utf-8")
 
             # Should still return cached value
             token2 = get_token()
             assert token1 == token2 == "test-api-token-12345"
 
     @staticmethod
-    def test_missing_token_file_raises_error(
-        tmp_path: Path, reset_settings: None
-    ) -> None:
+    def test_missing_token_file_raises_error(tmp_path: Path, reset_settings: None) -> None:
         """Test that missing keys file raises ConfigurationError."""
         nonexistent = tmp_path / "missing_keys.json"
         with env_override(LPTK_LOCAL_KEYS_PATH=str(nonexistent)):
@@ -187,9 +182,7 @@ class TestGetToken:
             assert "local_keys_path" in exc_info.value.details
 
     @staticmethod
-    def test_empty_keys_file_raises_error(
-        empty_token_file: Path, reset_settings: None
-    ) -> None:
+    def test_empty_keys_file_raises_error(empty_token_file: Path, reset_settings: None) -> None:
         """Test that a keys file missing ``startgg`` raises ConfigurationError."""
         with env_override(LPTK_LOCAL_KEYS_PATH=str(empty_token_file)):
             get_settings.cache_clear()
@@ -201,9 +194,7 @@ class TestGetToken:
             assert "schema validation" in str(exc_info.value).lower()
 
     @staticmethod
-    def test_malformed_json_raises_error(
-        malformed_keys_file: Path, reset_settings: None
-    ) -> None:
+    def test_malformed_json_raises_error(malformed_keys_file: Path, reset_settings: None) -> None:
         """Test that a keys file with invalid JSON raises ConfigurationError."""
         with env_override(LPTK_LOCAL_KEYS_PATH=str(malformed_keys_file)):
             get_settings.cache_clear()
@@ -215,9 +206,7 @@ class TestGetToken:
             assert "not valid json" in str(exc_info.value).lower()
 
     @staticmethod
-    def test_clear_token_cache(
-        tmp_token_file: Path, reset_settings: None
-    ) -> None:
+    def test_clear_token_cache(tmp_token_file: Path, reset_settings: None) -> None:
         """Test that clear_token_cache allows reloading the keys file."""
         with env_override(LPTK_LOCAL_KEYS_PATH=str(tmp_token_file)):
             get_settings.cache_clear()
@@ -272,9 +261,7 @@ class TestGetLpdbToken:
     """Tests for the get_lpdb_token function."""
 
     @staticmethod
-    def test_loads_lpdb_token(
-        tmp_token_file: Path, reset_settings: None
-    ) -> None:
+    def test_loads_lpdb_token(tmp_token_file: Path, reset_settings: None) -> None:
         """Test that get_lpdb_token loads the lpdb key from the JSON keys file."""
         with env_override(LPTK_LOCAL_KEYS_PATH=str(tmp_token_file)):
             get_settings.cache_clear()
@@ -282,9 +269,7 @@ class TestGetLpdbToken:
             assert get_lpdb_token() == "test-lpdb-token-67890"
 
     @staticmethod
-    def test_missing_lpdb_raises_error(
-        startgg_only_keys_file: Path, reset_settings: None
-    ) -> None:
+    def test_missing_lpdb_raises_error(startgg_only_keys_file: Path, reset_settings: None) -> None:
         """Test that get_lpdb_token raises when lpdb key is absent."""
         with env_override(LPTK_LOCAL_KEYS_PATH=str(startgg_only_keys_file)):
             get_settings.cache_clear()

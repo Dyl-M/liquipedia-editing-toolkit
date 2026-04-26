@@ -1,10 +1,10 @@
 """Shared pytest fixtures for lptk tests."""
 
 # Standard library
-import json
-import os
 from collections.abc import Generator
 from contextlib import contextmanager
+import json
+import os
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
@@ -226,23 +226,17 @@ def startgg_standings_response() -> dict[str, Any]:
                                     {
                                         "id": 1001,
                                         "gamerTag": "Player1",
-                                        "user": {
-                                            "location": {"country": "France"}
-                                        },
+                                        "user": {"location": {"country": "France"}},
                                     },
                                     {
                                         "id": 1002,
                                         "gamerTag": "Player2",
-                                        "user": {
-                                            "location": {"country": "Germany"}
-                                        },
+                                        "user": {"location": {"country": "Germany"}},
                                     },
                                     {
                                         "id": 1003,
                                         "gamerTag": "Player3",
-                                        "user": {
-                                            "location": {"country": "Spain"}
-                                        },
+                                        "user": {"location": {"country": "Spain"}},
                                     },
                                 ],
                             },
@@ -341,5 +335,3 @@ def startgg_set_details_response() -> dict[str, Any]:
             }
         }
     }
-
-
