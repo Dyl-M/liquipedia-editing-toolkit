@@ -15,7 +15,7 @@ Liquipedia DB API access is delegated to the [`liquipydia`](https://github.com/D
 
 ## Current Status
 
-**Version**: 0.0.2-alpha (API layer - start.gg)
+**Version**: 0.0.3-alpha (project standards alignment with [`liquipydia`](https://github.com/Dyl-M/liquipydia))
 
 Currently implemented:
 
@@ -43,7 +43,7 @@ token = get_token()            # start.gg token (required)
 lpdb_key = get_lpdb_token()    # Liquipedia DB key (optional, raises if absent)
 ```
 
-Keys file schema (`.token/local_keys.json`):
+Keys file schema (`.tokens/local_keys.json`):
 
 ```json
 {
@@ -58,7 +58,7 @@ All settings can be overridden via environment variables with the `LPTK_` prefix
 
 | Variable                 | Default                          | Description                                 |
 |--------------------------|----------------------------------|---------------------------------------------|
-| `LPTK_LOCAL_KEYS_PATH`   | `.token/local_keys.json`         | Path to the local JSON keys file            |
+| `LPTK_LOCAL_KEYS_PATH`   | `.tokens/local_keys.json`        | Path to the local JSON keys file            |
 | `LPTK_DATA_DIR`          | `_data/`                         | Output directory for JSON files             |
 | `LPTK_LOG_LEVEL`         | `INFO`                           | Logging level (DEBUG, INFO, WARNING, ERROR) |
 | `LPTK_STARTGG_API_URL`   | `https://api.start.gg/gql/alpha` | start.gg GraphQL endpoint                   |

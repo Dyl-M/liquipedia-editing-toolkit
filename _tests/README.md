@@ -5,14 +5,18 @@ This directory contains the test suite for the lptk package.
 ## Running Tests
 
 ```bash
+# Install the test dependency group first
+uv sync --group test
+
 # Run all tests
-uv run pytest _tests/
+uv run pytest
 
-# Run with verbose output
-uv run pytest _tests/ -v
+# Run with verbose output (already enabled by `addopts` in pyproject.toml)
+uv run pytest -v
 
-# Run with coverage report
-uv run pytest _tests/ --cov=lptk --cov-report=term-missing
+# Run with coverage (uses `coverage` directly, matching CI)
+uv run coverage run -m pytest && uv run coverage report
+uv run coverage xml                                  # XML report for DeepSource
 
 # Run a specific test file
 uv run pytest _tests/test_config.py
