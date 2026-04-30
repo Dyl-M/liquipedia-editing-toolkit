@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.0.3-alpha] - 2026-04-26
+## [0.0.3-alpha] - 2026-04-30
 
 ### Added
 
@@ -123,6 +123,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prevent AttributeError in `_normalize_flag()` when country is None
 
 [Unreleased]: https://github.com/Dyl-M/liquipedia-editing-toolkit/compare/v0.0.3-alpha...HEAD
-[0.0.3-alpha]: https://github.com/Dyl-M/liquipedia-editing-toolkit/compare/v0.0.1-alpha...v0.0.3-alpha
+[0.0.3-alpha]: https://github.com/Dyl-M/liquipedia-editing-toolkit/compare/v0.0.2-alpha...v0.0.3-alpha
+[0.0.2-alpha]: https://github.com/Dyl-M/liquipedia-editing-toolkit/compare/v0.0.1-alpha...v0.0.2-alpha
 [0.0.1-alpha]: https://github.com/Dyl-M/liquipedia-editing-toolkit/compare/v0.0.0-alpha...v0.0.1-alpha
 [0.0.0-alpha]: https://github.com/Dyl-M/liquipedia-editing-toolkit/releases/tag/v0.0.0-alpha
