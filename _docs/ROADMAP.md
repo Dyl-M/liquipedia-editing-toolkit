@@ -203,8 +203,8 @@ cli/main.py
 
 - [x] Implement `StartGGClient` class with all GraphQL queries
 - [x] ~~Implement `LiquipediaClient` class with API methods~~ Delegated to the external
-      [`liquipydia`](https://github.com/Dyl-M/liquipydia) library (v0.1.0+) — pinned as a runtime dependency in
-      `pyproject.toml`
+  [`liquipydia`](https://github.com/Dyl-M/liquipydia) library (v0.1.0+) — pinned as a runtime dependency in
+  `pyproject.toml`
 - [x] Create Pydantic models for start.gg API responses
 - [x] Add rate limiting and retry logic
 - [x] Write unit tests with mocked responses (128 tests total, 100% coverage)
@@ -212,6 +212,43 @@ cli/main.py
 - [x] Create `lptk/models/README.md` (data models documentation)
 
 **Deliverables**: Fully functional start.gg client; Liquipedia DB access provided by `liquipydia`
+
+---
+
+### v0.0.3-alpha - Project Standards Alignment with `liquipydia` (Complete)
+
+**Goal**: Bring contribution, release, security, documentation and test workflows in line with the
+sister project [`liquipydia`](https://github.com/Dyl-M/liquipydia) (v0.1.0, beta) before starting
+the larger v0.1.0 tools migration.
+
+- [x] Add `CONTRIBUTING.md` (branch model `main` + `dev`, Conventional Commits, merge rules,
+      branch protection)
+- [x] Add `SECURITY.md` (private vulnerability reporting, 72 h SLA, coordinated disclosure)
+- [x] Add `.github/pull_request_template.md` and `.github/ISSUE_TEMPLATE/{issue_report,feature_request}.yml`
+- [x] Restructure top-level `README.md` to mirror `liquipydia`'s section list
+- [x] Replace `test-coverage.yml` with `lint-and-test.yml` (3 parallel jobs: lint, type-check,
+      test) including concurrency cancellation, explicit `permissions` block, DeepSource upload via
+      `deepsourcelabs/test-coverage-action`
+- [x] Add explicit `permissions` to `licence_workflow.yml`
+- [x] Migrate `[project.optional-dependencies]` → PEP 735 `[dependency-groups]` (dev / test / docs)
+- [x] Drop `pytest-cov`, switch to `coverage` directly
+- [x] Bump pyproject `requires-python` to `>=3.12`, drop 3.13/3.14 classifiers, set Development
+      Status to `3 - Alpha`, switch author email to `dyl_m.dev@proton.me`
+- [x] Add `[tool.semantic_release]` configuration to `pyproject.toml` and a `release.yml`
+      workflow that runs python-semantic-release on push to `main`
+- [x] Expand `[tool.ruff.lint]` selection (F,E,W,I,UP,B,SIM,RUF,D,N,ANN,S,T20,PT,RET,TCH) with
+      tests-only ignores (`ANN`, `S101`, `S105`, `S106`); set `pydocstyle` convention to Google
+- [x] Enable `mypy` strict mode with the `pydantic.mypy` plugin
+- [x] Build a Sphinx docs site (`_docs/sphinx/`) using furo + myst-parser + autodoc; deploy via
+      `.github/workflows/docs.yml` to `https://dyl-m.github.io/liquipedia-editing-toolkit/`
+- [x] Update `lptk/__init__.py` `__version__`, `lptk/README.md` banner, root `README.md` Status
+      badge to v0.0.3-alpha
+- [x] Update `CLAUDE.md` setup section for the new dependency-group syntax and branch model
+- [x] Update `.github/dependabot.yml` to target `dev`
+- [x] Fix `.token/` → `.tokens/` typos across documentation
+
+**Deliverables**: Repo governance, CI, release automation, lint/type-check posture, docs site
+and contribution process aligned with `liquipydia`. No feature changes — purely standards.
 
 ---
 
@@ -706,7 +743,8 @@ The following features are not part of the initial restructuring but could be ad
 
 During migration, the following issues from the archived code should be fixed:
 
-1. **Hardcoded paths**: Legacy archive code references `../../_token/`; the runtime code now uses `.token/local_keys.json` via `LPTK_LOCAL_KEYS_PATH`. Any revived archive module must migrate to the new scheme.
+1. **Hardcoded paths**: Legacy archive code references `../../_token/`; the runtime code now uses
+   `.tokens/local_keys.json` via `LPTK_LOCAL_KEYS_PATH`. Any revived archive module must migrate to the new scheme.
 2. **Duplicated API calls**: Centralize in `StartGGClient`
 3. **Mixed concerns**: Separate API calls from wikitext formatting
 4. **No error recovery**: Add retry logic for transient failures
@@ -769,6 +807,7 @@ from lptk.exceptions import APIError
 ```
 
 **Rules:**
+
 - Section comments are required: `# Standard library`, `# Third-party`, `# Local`
 - Each section is separated by a blank line
 - Imports within each section are sorted alphabetically

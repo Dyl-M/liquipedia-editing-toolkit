@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.3-alpha] - 2026-04-30
+
+### Added
+
+- `CONTRIBUTING.md` — branch model (`main` + `dev` + short-lived feature branches), Conventional Commits
+  guidance, merge strategy table, branch protection rules, branch-naming prefixes, dev-command quick
+  reference (linting, type-check, tests, docs).
+- `SECURITY.md` — vulnerability reporting policy (private email and GitHub Security Advisories), SLA
+  (72 h acknowledgement, 7 d status update), coordinated-disclosure stance.
+- `.github/pull_request_template.md` and `.github/ISSUE_TEMPLATE/{issue_report,feature_request}.yml` —
+  structured PR and issue forms aligned with the
+  [`liquipydia`](https://github.com/Dyl-M/liquipydia) playbook.
+- README "Documentation" section with link to upcoming Sphinx site at
+  `https://dyl-m.github.io/liquipedia-editing-toolkit/`.
+- README "Data License" section covering start.gg developer terms and Liquipedia CC-BY-SA 3.0
+  attribution requirements.
+
+### Changed
+
+- README restructured to mirror `liquipydia`'s top-level section list
+  (About → Project Structure → API Access → Installation → Quick Start → Documentation → Development →
+  License → Data License → Contributing → Security).
+- `lptk/README.md` version banner bumped to `0.0.3-alpha`; project standards-alignment milestone called
+  out explicitly.
+
+### Fixed
+
+- Documented credential path corrected to `.tokens/` (plural) across `README.md`, `lptk/README.md`,
+  `CHANGELOG.md` and `_docs/ROADMAP.md` to match the actual default in `lptk/config.py` and the
+  `.gitignore` entry.
+
+## [0.0.2-alpha] - 2026-04-26
+
 ### Added
 
 - `lptk.api.StartGGClient` — start.gg GraphQL client with bearer-token auth, rate limiting, retries with
@@ -27,12 +60,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   [`liquipydia`](https://github.com/Dyl-M/liquipydia) library instead of an in-repo client —
   the toolkit only owns the start.gg client and shared models
 - Config, README, and ROADMAP updated to reflect the start.gg-only scope of `lptk.api`
-- Credentials moved from flat text files under `_token/` to JSON files under `.token/`:
-  `.token/local_keys.json` (runtime keys — `startgg`, `lpdb`) and `.token/repo_keys.json`
+- Credentials moved from flat text files under `_token/` to JSON files under `.tokens/`:
+  `.tokens/local_keys.json` (runtime keys — `startgg`, `lpdb`) and `.tokens/repo_keys.json`
   (local tooling keys — `pat`; not loaded by `lptk`)
 - `Settings.token_path` renamed to `Settings.local_keys_path`; env var `LPTK_TOKEN_PATH`
   renamed to `LPTK_LOCAL_KEYS_PATH` (**breaking**)
-- `get_token()` now reads the `startgg` field of `.token/local_keys.json` instead of a plain
+- `get_token()` now reads the `startgg` field of `.tokens/local_keys.json` instead of a plain
   text file
 
 ### Removed
@@ -89,5 +122,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Prevent AttributeError in `_normalize_flag()` when country is None
 
+[Unreleased]: https://github.com/Dyl-M/liquipedia-editing-toolkit/compare/v0.0.3-alpha...HEAD
+[0.0.3-alpha]: https://github.com/Dyl-M/liquipedia-editing-toolkit/compare/v0.0.2-alpha...v0.0.3-alpha
+[0.0.2-alpha]: https://github.com/Dyl-M/liquipedia-editing-toolkit/compare/v0.0.1-alpha...v0.0.2-alpha
 [0.0.1-alpha]: https://github.com/Dyl-M/liquipedia-editing-toolkit/compare/v0.0.0-alpha...v0.0.1-alpha
 [0.0.0-alpha]: https://github.com/Dyl-M/liquipedia-editing-toolkit/releases/tag/v0.0.0-alpha

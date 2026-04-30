@@ -31,7 +31,7 @@ from lptk.models import (
     Team,
 )
 
-__version__ = "0.0.2-alpha"
+__version__ = "0.0.3-alpha"
 __all__ = [
     "__version__",
     # Config
