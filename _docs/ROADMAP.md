@@ -222,27 +222,27 @@ sister project [`liquipydia`](https://github.com/Dyl-M/liquipydia) (v0.1.0, beta
 the larger v0.1.0 tools migration.
 
 - [x] Add `CONTRIBUTING.md` (branch model `main` + `dev`, Conventional Commits, merge rules,
-      branch protection)
+  branch protection)
 - [x] Add `SECURITY.md` (private vulnerability reporting, 72 h SLA, coordinated disclosure)
 - [x] Add `.github/pull_request_template.md` and `.github/ISSUE_TEMPLATE/{issue_report,feature_request}.yml`
 - [x] Restructure top-level `README.md` to mirror `liquipydia`'s section list
 - [x] Replace `test-coverage.yml` with `lint-and-test.yml` (3 parallel jobs: lint, type-check,
-      test) including concurrency cancellation, explicit `permissions` block, DeepSource upload via
-      `deepsourcelabs/test-coverage-action`
+  test) including concurrency cancellation, explicit `permissions` block, DeepSource upload via
+  `deepsourcelabs/test-coverage-action`
 - [x] Add explicit `permissions` to `licence_workflow.yml`
 - [x] Migrate `[project.optional-dependencies]` → PEP 735 `[dependency-groups]` (dev / test / docs)
 - [x] Drop `pytest-cov`, switch to `coverage` directly
 - [x] Bump pyproject `requires-python` to `>=3.12`, drop 3.13/3.14 classifiers, set Development
-      Status to `3 - Alpha`, switch author email to `dyl_m.dev@proton.me`
+  Status to `3 - Alpha`, switch author email to `dyl_m.dev@proton.me`
 - [x] Add `[tool.semantic_release]` configuration to `pyproject.toml` and a `release.yml`
-      workflow that runs python-semantic-release on push to `main`
+  workflow that runs python-semantic-release on push to `main`
 - [x] Expand `[tool.ruff.lint]` selection (F,E,W,I,UP,B,SIM,RUF,D,N,ANN,S,T20,PT,RET,TCH) with
-      tests-only ignores (`ANN`, `S101`, `S105`, `S106`); set `pydocstyle` convention to Google
+  tests-only ignores (`ANN`, `S101`, `S105`, `S106`); set `pydocstyle` convention to Google
 - [x] Enable `mypy` strict mode with the `pydantic.mypy` plugin
 - [x] Build a Sphinx docs site (`_docs/sphinx/`) using furo + myst-parser + autodoc; deploy via
-      `.github/workflows/docs.yml` to `https://dyl-m.github.io/liquipedia-editing-toolkit/`
+  `.github/workflows/docs.yml` to `https://dyl-m.github.io/liquipedia-editing-toolkit/`
 - [x] Update `lptk/__init__.py` `__version__`, `lptk/README.md` banner, root `README.md` Status
-      badge to v0.0.3-alpha
+  badge to v0.0.3-alpha
 - [x] Update `CLAUDE.md` setup section for the new dependency-group syntax and branch model
 - [x] Update `.github/dependabot.yml` to target `dev`
 - [x] Fix `.token/` → `.tokens/` typos across documentation
@@ -265,6 +265,9 @@ and contribution process aligned with `liquipydia`. No feature changes — purel
 - [ ] Create `lptk/wikitext/README.md` (wikitext parsing and generation documentation)
 - [ ] Create `lptk/tools/README.md` (business logic tools documentation)
 - [ ] Create `lptk/utils/README.md` (utility functions documentation)
+- [ ] Silence Sphinx autodoc duplicate-description warnings (~41 Pydantic field collisions across `_docs/sphinx/api/`);
+  use `:no-index:` directives or tighter `autodoc_default_options`
+- [ ] Add `.github/workflows/codeql.yml` for CodeQL static analysis (security scanning, parity with `liquipydia`)
 
 **Deliverables**: All three tools working with new architecture, maintaining 80%+ overall coverage
 
