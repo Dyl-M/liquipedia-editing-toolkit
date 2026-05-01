@@ -27,10 +27,10 @@ dependencies = [
     "beautifulsoup4==4.14.3",
     "liquipydia==0.1.0",
     "pycountry==26.2.16",
-    "pydantic==2.12.5",
-    "pydantic-settings==2.13.1",
+    "pydantic==2.13.3",
+    "pydantic-settings==2.14.0",
     "requests==2.33.1",
-    "typer==0.24.1",
+    "typer==0.25.1",
 ]
 
 [project.scripts]
@@ -46,13 +46,13 @@ Changelog = "https://github.com/Dyl-M/liquipedia-editing-toolkit/blob/main/CHANG
 [dependency-groups]
 dev = [
     { include-group = "test" },
-    "ruff==0.15.9",
-    "mypy==1.20.0",
+    "ruff==0.15.12",
+    "mypy==1.20.2",
     "types-beautifulsoup4==4.12.0.20250516",
-    "types-requests==2.33.0.20260327",
+    "types-requests==2.33.0.20260408",
 ]
 test = [
-    "pytest==9.0.2",
+    "pytest==9.0.3",
     "coverage==7.13.5",
 ]
 docs = [
@@ -60,7 +60,7 @@ docs = [
     "myst-parser==5.0.0",
     "sphinx==9.1.0",
     "sphinx-autobuild==2025.8.25",
-    "sphinx-autodoc-typehints==3.10.0",
+    "sphinx-autodoc-typehints==3.10.2",
     "sphinx-copybutton==0.5.2",
 ]
 
