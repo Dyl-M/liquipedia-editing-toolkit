@@ -533,7 +533,9 @@ tests/test_utils.py
 - [ ] Implement `cli/main.py` with Typer app:
   ```python
   import typer
+
   app = typer.Typer()
+
 
   @app.command()
   def participants(
@@ -544,6 +546,7 @@ tests/test_utils.py
       segments: list[int] | None = None,
   ): ...
 
+
   @app.command()
   def prizepool(
       event_slug: str,
@@ -551,6 +554,7 @@ tests/test_utils.py
       output_file: Path | None = None,
       phase: str | None = None,
   ): ...
+
 
   @app.command()
   def streams(

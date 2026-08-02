@@ -39,8 +39,8 @@ print(settings.log_level)  # "INFO"
 print(settings.startgg_api_url)  # "https://api.start.gg/gql/alpha"
 
 # Read the local keys file (default: .tokens/local_keys.json)
-token = get_token()            # start.gg token (required)
-lpdb_key = get_lpdb_token()    # Liquipedia DB key (optional, raises if absent)
+token = get_token()  # start.gg token (required)
+lpdb_key = get_lpdb_token()  # Liquipedia DB key (optional, raises if absent)
 ```
 
 Keys file schema (`.tokens/local_keys.json`):
